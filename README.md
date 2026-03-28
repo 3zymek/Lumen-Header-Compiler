@@ -17,14 +17,14 @@ parsers, serializers, and editor UI for every new component.
 3. Generated .lum.generated.hpp files are included automatically
 
 ## Example
-\`\`\`cpp
+```cpp
 LCLASS()
 struct CTransform {
     LPROPERTY(Edit) glm::vec3 mPosition;
     LPROPERTY(Edit) glm::vec3 mRotation;
     LPROPERTY(Edit) glm::vec3 mScale;
 };
-\`\`\`
+```
 
 LHC generates the parser, serializer and ImGui UI for this component automatically.
 
