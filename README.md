@@ -1,4 +1,4 @@
-# Lum Header Compiler (LHC)
+# Lumen Header Compiler (LHC)
 
 LHC is a code generation tool built for the LumEngine ecosystem.
 It parses C++ header files annotated with reflection macros and automatically 
@@ -29,4 +29,6 @@ struct CTransform {
 LHC generates the parser, serializer and ImGui UI for this component automatically.
 
 ## Part of
+<div align="center">
+![lumengine logo](https://github.com/3zymek/LumEngine/blob/main/LumEngine/internal_assets/branding/lumengine_medium2.png)
 [LumEngine](https://github.com/3zymek/LumEngine) — a custom C++ game engine.
