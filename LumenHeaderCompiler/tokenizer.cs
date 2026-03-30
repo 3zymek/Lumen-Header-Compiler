@@ -1,6 +1,6 @@
 ﻿namespace lhc;
 
-enum TokenType {
+internal enum TokenType {
     Macro,
     Identifier,
     Keyword,
@@ -11,9 +11,9 @@ enum TokenType {
     Semicolon,
     Colon,
 }
-record Token( TokenType mType, string mValue );
+internal record Token( TokenType mType, string mValue );
 
-class Tokenizer {
+internal class Tokenizer {
 
     public readonly List<Token> mTokens = new( );
 

@@ -1,10 +1,10 @@
 ﻿namespace lhc;
 
-record PropertyData( string mType, string mValue );
+internal record FieldInfo( string mType, string mName );
+internal record ConponentInfo( string mName, List<FieldInfo> mFields );
+internal class Parser {
 
-class Parser {
-
-    public readonly List<PropertyData> mProperties = new( );
+    public readonly List<ConponentInfo> mProperties = new( );
 
     private List<Token> mTokens;
     private int mPosition = 0;
@@ -24,7 +24,6 @@ class Parser {
 
 
     private string parse_name( ) {
-        Console.Write( mCurrent.mValue );
         return expect( TokenType.Identifier ).mValue;
     }
 
@@ -32,12 +31,12 @@ class Parser {
 
         string type = expect( TokenType.Identifier ).mValue;
 
-        while(mCurrent.mType == TokenType.Colon) {
+        while (mCurrent.mType == TokenType.Colon) {
             increment( );
             increment( );
             type += "::" + expect( TokenType.Identifier ).mValue;
         }
-        
+
         return type;
 
     }
@@ -51,8 +50,8 @@ class Parser {
         string type = parse_type( );
         string name = parse_name( );
 
-        mProperties.Add( new( type, name ) );
-            
+        mProperties.Last( ).mFields.Add( new FieldInfo( type, name ) );
+
     }
 
     private void parse_class( ) {
@@ -62,14 +61,15 @@ class Parser {
         expect( TokenType.RParen );
 
         string keyword = expect( TokenType.Keyword ).mValue;
+        string name = expect( TokenType.Identifier ).mValue;
 
-        mProperties.Add( new( keyword, keyword ) );
+        mProperties.Add( new ConponentInfo( name, new( ) ) );
 
     }
 
     public void Parse( ) {
 
-        while(mPosition < mTokens.Count) {
+        while (mPosition < mTokens.Count) {
 
             if (mCurrent.mType == TokenType.Macro) {
 

@@ -1,6 +1,6 @@
 ﻿namespace lhc;
 
-class Program {
+internal class Program {
 
     static void Main( string[] args ) {
 
@@ -10,10 +10,7 @@ class Program {
         Parser parser = new( tokenizer );
         parser.Parse( );
 
-        foreach(PropertyData data in parser.mProperties) {
-            Console.WriteLine( "Type = " + data.mType + "    " );
-            Console.WriteLine( "Value = " + data.mValue + '\n' );
-        }
+        HeaderGenerator.Generate( args[0], parser.mProperties );
 
 
     }
