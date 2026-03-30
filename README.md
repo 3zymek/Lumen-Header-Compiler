@@ -1,32 +1,48 @@
-# Lum Header Compiler (LHC)
+<div align="center">
 
-LHC is a code generation tool built for the LumEngine ecosystem.
-It parses C++ header files annotated with reflection macros and automatically 
-generates boilerplate code — eliminating the need to manually write 
-parsers, serializers, and editor UI for every new component.
+![logo](https://raw.githubusercontent.com/3zymek/LumEngine/main/LumEngine/internal_assets/branding/lumengine_medium2.png)
+
+# Lumen Header Compiler (LHC)
+
+A code generation tool for the [LumEngine](https://github.com/3zymek/LumEngine) ecosystem.  
+Parses annotated C++ headers and generates boilerplate — no more manual parsers, serializers or editor UI.
+
+---
 
 ## What it generates
-- Scene file parsers (.lsc format)
-- Scene serializers
-- ImGui editor UI
-- Dirty flag setters
+
+| Output | Description |
+|--------|-------------|
+| Scene parsers | Reads `.lsc` scene files into components |
+| Serializers | Writes component state to `.lsc` |
+| ImGui UI | Editor property panels per component |
+| Dirty setters | Automatic `bDirty` flagging on property change |
+
+</div>
 
 ## How it works
+```
 1. Annotate your component with LHC macros
 2. LHC runs before compilation via CMake
 3. Generated .lum.generated.hpp files are included automatically
+```
 
 ## Example
 ```cpp
 LCLASS()
-struct CTransform {
+struct CTransform : public Component {
     LPROPERTY(Edit) glm::vec3 mPosition;
     LPROPERTY(Edit) glm::vec3 mRotation;
     LPROPERTY(Edit) glm::vec3 mScale;
 };
 ```
 
-LHC generates the parser, serializer and ImGui UI for this component automatically.
+LHC reads this header and generates the parser, serializer and ImGui UI automatically — no manual code needed.
 
 ## Part of
-[LumEngine](https://github.com/3zymek/LumEngine) — a custom C++ game engine.
+
+<div align="center">
+
+Built for [LumEngine](https://github.com/3zymek/LumEngine) — a custom C++ game engine.
+
+</div>
