@@ -1,11 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 
 namespace lhc;
 
+internal record JsonProperty( string reader, string imgui );
+internal record JsonRoot( Dictionary<string, JsonProperty> types );
+
 internal static class HeaderGenerator {
+
+    private static readonly JsonRoot mRoot;
+
+    static HeaderGenerator( ) {
+
+        string jsonContent = File.ReadAllText( $"{get_current_path( )}/types.json" );
+
+        mRoot = JsonSerializer.Deserialize<JsonRoot>( jsonContent ) ??
+            throw new Exception( $"Failed to deserialize {get_current_path( )}types.json" );
+
+    }
 
     public static void Generate( string sourceFile, List<ConponentInfo> components ) {
 
@@ -28,16 +44,19 @@ internal static class HeaderGenerator {
 
     }
 
-    private static string? type_to_reader( string type ) => type switch
-    {
-        "glm::vec3" => "detail::ReadVec3Parameter",
-        "glm::vec2" => "detail::ReadVec2Parameter",
-        "float32" => "detail::ReadFloatParameter",
-        "int32" => "detail::ReadIntParameter",
-        "bool" => "detail::ReadBoolParameter",
-        "String" => "detail::ReadStringParameter",
-        _ => null
-    };
+    public static void Finalize() {
+
+    }
+
+    private static string? type_to_reader( string type ) {
+
+        if (mRoot.types.TryGetValue( type, out var value )) {
+            return value.reader;
+        }
+
+        return null;
+
+    }
 
     private static void generate_preamble( ref StringBuilder sb, string sourceFile ) {
 
@@ -58,6 +77,9 @@ internal static class HeaderGenerator {
 
     }
 
+    private static string? get_current_path( [CallerFilePath] string path = "" ) {
+        return Path.GetDirectoryName( path );
+    }
     private static void generate_postamble( ref StringBuilder sb ) {
         sb.AppendLine( "} // namespace lum::fmt::detail" );
     }
@@ -67,7 +89,7 @@ internal static class HeaderGenerator {
         string compName = component.mName.TrimStart( 'C' ).ToLower( );
 
         sb.Append( $"\tvoid Parse{component.mName}( std::vector<FToken>& tokens, int32& i, FParseContext& ctx ) " );
-        sb.AppendLine( "{" );
+        sb.AppendLine( "{\n" );
         sb.AppendLine( "\t\tdetail::ExpectOpeningBracket(tokens, i );\n" );
         sb.AppendLine( $"\t\t{component.mName} comp; \n" );
         sb.AppendLine( "\t\twhile( in_block( tokens, i ) ) {" );

@@ -1,0 +1,47 @@
+{
+    "types": {
+        
+        "float": {
+            "reader": "detail::ReadFloatParameter",
+            "imgui": "ImGui::DragFloat"
+        },
+        "float32": {
+            "reader": "detail::ReadFloatParameter",
+            "imgui": "ImGui::DragFloat"
+        },
+        "double": {
+            "reader": "detail::ReadFloatParameter",
+            "imgui": "ImGui::DragFloat"
+        },
+        "float64": {
+            "reader": "detail::ReadFloatParameter",
+            "imgui": "ImGui::DragFloat"
+        },
+
+        "glm::vec3": {
+            "reader": "detail::ReadVec3Parameter",
+            "imgui": "ImGui::DragFloat3"
+        },
+        "glm::vec2": {
+            "reader": "detail::ReadVec2Parameter",
+            "imgui": "ImGui::DragFloat2"
+        },
+        "bool": {
+        "reader": "detail::ReadBoolParameter",
+        "imgui": "ImGui::Checkbox"
+        },
+        "int32": {
+            "reader": "detail::ReadIntParameter",
+            "imgui": "ImGui::DragInt"
+        },
+        "String": {
+            "reader": "detail::ReadStringParameter",
+            "imgui": "ImGui::InputText"
+        },
+        "glm::vec4": {
+            "reader": "detail::ReadVec4Parameter",
+            "imgui": "ImGui::DragFloat4"
+        }
+        
+    }
+}
