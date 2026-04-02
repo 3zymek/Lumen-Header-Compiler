@@ -69,6 +69,8 @@ internal class Parser {
 
     public void Parse( ) {
 
+        mProperties.Clear( );
+
         while (mPosition < mTokens.Count) {
 
             if (mCurrent.mType == TokenType.Macro) {

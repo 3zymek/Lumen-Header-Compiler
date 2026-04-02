@@ -2,7 +2,7 @@
   "profiles": {
     "LumenHeaderCompiler": {
       "commandName": "Project",
-      "commandLineArgs": "test.txt"
+      "commandLineArgs": "engine"
     }
   }
 }

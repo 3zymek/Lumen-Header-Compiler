@@ -19,6 +19,8 @@ internal class Tokenizer {
 
     public void Tokenize( string filename ) {
 
+        mTokens.Clear( );
+
         if (!File.Exists( filename )) {
             throw new Exception( $"File {filename} doesn't exist" );
         }

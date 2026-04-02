@@ -1,4 +1,17 @@
 {
+    "paths": {
+        "preamble_include": "modules/scene/format/scene_parser.hpp",
+        "preamble_namespace": "lum::fmt::detail"
+    },
+
+    "templates": {
+        "parse_fn_signature": "void Parse{0}( std::vector<FToken>& tokens, int32& i, FParseContext& ctx )",
+        "parse_fn_body_open": "detail::ExpectOpeningBracket( tokens, i );",
+        "parse_fn_comp_name": "component",
+        "parse_fn_field": "{0}.{1} = {2}( tokens, i );",
+        "parse_fn_add": "ctx.mScene.mEntityMgr.AddComponent( ctx.mEntity, {0} );"
+    },
+
     "types": {
         
         "float": {
