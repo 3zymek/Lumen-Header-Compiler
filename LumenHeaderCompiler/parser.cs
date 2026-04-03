@@ -1,10 +1,16 @@
 ﻿namespace lhc;
 
+internal struct ClassArguments {
+
+    public string? mID;
+
+};
 internal record FieldInfo( string mType, string mName );
-internal record ConponentInfo( string mName, List<FieldInfo> mFields );
+internal record ClassInfo( string mName, ClassArguments mArgs, List<FieldInfo> mFields );
+
 internal class Parser {
 
-    public readonly List<ConponentInfo> mProperties = new( );
+    public readonly List<ClassInfo> mComponents = new( );
 
     private List<Token> mTokens;
     private int mPosition = 0;
@@ -33,7 +39,8 @@ internal class Parser {
 
         while (mCurrent.mType == TokenType.Colon) {
             increment( );
-            increment( );
+            if (mCurrent.mType == TokenType.Colon)
+                increment( );
             type += "::" + expect( TokenType.Identifier ).mValue;
         }
 
@@ -47,10 +54,38 @@ internal class Parser {
         expect( TokenType.LParen );
         expect( TokenType.RParen );
 
+        if (mComponents.Count == 0)
+            throw new Exception( $"LPROPERTY found before any LCLASS in {mCurrent}" );
+
         string type = parse_type( );
         string name = parse_name( );
 
-        mProperties.Last( ).mFields.Add( new FieldInfo( type, name ) );
+        mComponents.Last( ).mFields.Add( new FieldInfo( type, name ) );
+
+    }
+
+    private ClassArguments read_class_args( ) {
+
+        ClassArguments args = new( );
+
+        while (mCurrent.mType != TokenType.RParen) {
+
+            if (mCurrent.mType == TokenType.Identifier) {
+
+                if (mCurrent.mValue == "id") {
+
+                    increment( );
+                    expect( TokenType.Equals );
+                    args.mID = expect( TokenType.String ).mValue;
+
+                }
+
+            }
+            else increment( );
+
+        }
+
+        return args;
 
     }
 
@@ -58,18 +93,21 @@ internal class Parser {
 
         expect( TokenType.Macro );
         expect( TokenType.LParen );
+
+        ClassArguments args = read_class_args( );
+
         expect( TokenType.RParen );
 
         string keyword = expect( TokenType.Keyword ).mValue;
         string name = expect( TokenType.Identifier ).mValue;
 
-        mProperties.Add( new ConponentInfo( name, new( ) ) );
+        mComponents.Add( new ClassInfo( name, args, new( ) ) );
 
     }
 
     public void Parse( ) {
 
-        mProperties.Clear( );
+        mComponents.Clear( );
 
         while (mPosition < mTokens.Count) {
 

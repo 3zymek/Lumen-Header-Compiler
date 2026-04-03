@@ -9,7 +9,10 @@ internal enum TokenType {
     LBracket,
     RBracket,
     Semicolon,
+    Comma,
+    Equals,
     Colon,
+    String
 }
 internal record Token( TokenType mType, string mValue );
 
@@ -46,6 +49,12 @@ internal class Tokenizer {
                 continue;
             }
 
+            else if(c == '#') {
+                while (i < content.Length && content[i] != '\n')
+                    i++;
+                continue;
+            }
+
             else if (char.IsLetter( c ) || c == '_') {
 
                 string value = "";
@@ -65,12 +74,23 @@ internal class Tokenizer {
                 else mTokens.Add( new( TokenType.Identifier, value ) );
 
             }
+            else if(c == '"') {
+                i++;
+                string value = "";
+                while(i < content.Length && content[i] != '"') {
+                    value += content[i++];
+                }
+                i++;
+                mTokens.Add( new( TokenType.String, value ) );
+            }
             else if (c == '{') { mTokens.Add( new( TokenType.LBracket, "{" ) ); i++; }
             else if (c == '}') { mTokens.Add( new( TokenType.RBracket, "}" ) ); i++; }
             else if (c == '(') { mTokens.Add( new( TokenType.LParen, "(" ) ); i++; }
             else if (c == ')') { mTokens.Add( new( TokenType.RParen, ")" ) ); i++; }
             else if (c == ';') { mTokens.Add( new( TokenType.Semicolon, ";" ) ); i++; }
             else if (c == ':') { mTokens.Add( new( TokenType.Colon, ":" ) ); i++; }
+            else if (c == '=') { mTokens.Add( new( TokenType.Equals, "=" ) ); i++; }
+            else if (c == ',') { mTokens.Add( new( TokenType.Comma, "," ) ); i++; }
             else i++;
 
         }
