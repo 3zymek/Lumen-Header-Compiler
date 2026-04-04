@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 
 namespace lhc;
+
 internal record JsonProperty( string reader, string imgui );
 internal record JsonRoot(
     Dictionary<string, string> paths,
@@ -16,7 +17,7 @@ internal record JsonRoot(
 
 internal record ClassGeneratedInfo(
     ClassInfo mInfo,
-    string mFilepath,
+    string mGeneratedFilepath,
     string mParseFnName,
     string mSerializeFnName,
     string mEditorFnName
@@ -27,12 +28,16 @@ internal static class HeaderGenerator {
     private static JsonRoot? mRoot;
     private static Dictionary<string, ClassGeneratedInfo> mComponents = new( );
 
-    public static void Initialize( ) {
+    private static string mSceneManagerPath = "";
+
+    public static void Initialize( string sceneDepMgrPath ) {
 
         string jsonContent = File.ReadAllText( $"{Path.Combine( AppContext.BaseDirectory, "config.json" )}" );
 
         mRoot = JsonSerializer.Deserialize<JsonRoot>( jsonContent ) ??
             throw new Exception( $"Failed to deserialize {Path.Combine( AppContext.BaseDirectory, "config.json" )}" );
+
+        mSceneManagerPath = sceneDepMgrPath;
 
     }
 
@@ -42,10 +47,10 @@ internal static class HeaderGenerator {
         if (mRoot == null) throw new Exception( "Header generator not initialized" );
 
         StringBuilder sb = new( );
-        string filePath = Path.Combine(
+        string generatedPath = Path.Combine(
             Path.GetDirectoryName( sourceFile )!,
-            Path.GetFileNameWithoutExtension( sourceFile ) + ".generated.hpp" 
-            );
+            Path.GetFileNameWithoutExtension( sourceFile ) + ".generated.hpp"
+        );
 
         generate_preamble( sb, sourceFile );
         foreach (var comp in components) {
@@ -56,7 +61,7 @@ internal static class HeaderGenerator {
 
             mComponents[compName] = new ClassGeneratedInfo(
                 mInfo: comp,
-                mFilepath: sourceFile,
+                mGeneratedFilepath: generatedPath,
                 mParseFnName: string.Format( parseFnName, comp.mName ),
                 mSerializeFnName: "TO IMPLEMENT",
                 mEditorFnName: "TO IMPLEMENT"
@@ -68,7 +73,7 @@ internal static class HeaderGenerator {
         generate_postamble( sb );
 
 
-        File.WriteAllText( filePath, sb.ToString( ) );
+        File.WriteAllText( generatedPath, sb.ToString( ) );
 
     }
 
@@ -82,15 +87,15 @@ internal static class HeaderGenerator {
             Path.GetFileNameWithoutExtension( outputDir ) + ".generated.hpp"
         );
 
-        finalize_scene_parser( outputPath );
+        finalize_scene_dep_mgr( outputPath );
 
     }
 
-    private static void finalize_scene_parser( string outputPath ) {
+    private static void finalize_scene_dep_mgr( string outputPath ) {
 
         StringBuilder sb = new( );
 
-        generate_preamble( sb, outputPath, mComponents.Values.Select(v => v.mFilepath).Distinct() );
+        generate_preamble( sb, outputPath, mComponents.Values.Select( v => v.mGeneratedFilepath ).Distinct( ) );
 
         sb.Append( $"\tinline void {mRoot.templates["parse_fn_registry"]!} " );
         sb.AppendLine( "{" );
@@ -130,7 +135,8 @@ internal static class HeaderGenerator {
         sb.AppendLine( $"//" );
         sb.AppendLine( $"//=============================================================================//" );
         sb.AppendLine( $"#pragma once" );
-        sb.AppendLine( $"#include \"modules/scene/format/scene_parser.hpp\"" );
+        sb.AppendLine( $"#include \"{Path.GetFileName( sourceFile )}\"" );
+        sb.AppendLine( $"#include \"{mSceneManagerPath}\"" );
 
         if (extraIncludes != null) {
             foreach (var include in extraIncludes) {
@@ -139,14 +145,15 @@ internal static class HeaderGenerator {
         }
 
         sb.AppendLine( );
-        sb.AppendLine( "namespace lum::fmt::detail {" );
+        sb.Append( $"namespace {mRoot.paths["code_namespace"]}" );
+        sb.AppendLine( " {" );
         sb.AppendLine( );
 
     }
 
     private static void generate_postamble( StringBuilder sb ) {
         sb.Append( "}" );
-        sb.AppendLine( $" // namespace {mRoot.paths["preamble_namespace"]!}" );
+        sb.AppendLine( $" // namespace {mRoot.paths["code_namespace"]}" );
     }
 
     private static void generate_parse_fn( StringBuilder sb, ClassInfo component ) {
@@ -158,8 +165,10 @@ internal static class HeaderGenerator {
         sb.AppendLine( "{\n" );
         sb.AppendLine( $"\t\t{mRoot.templates["parse_fn_body_open"]}\n" );
         sb.AppendLine( $"\t\t{component.mName} {componentAlias}; \n" );
-        sb.AppendLine( "\t\twhile( in_block( tokens, i ) ) {" );
-        sb.AppendLine( "\t\t\tif( tokens[i].mType == TokenType::Parameter ) {" );
+        sb.Append( $"\t\twhile( {mRoot.templates["parse_fn_while_expr"]} )" );
+        sb.AppendLine( " {" );
+        sb.Append( $"\t\t\tif( {mRoot.templates["parse_fn_token_check"]} )" );
+        sb.AppendLine( "{" );
 
         for (int i = 0; i < component.mFields.Count; i++) {
 

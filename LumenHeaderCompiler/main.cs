@@ -15,7 +15,7 @@ internal class Program {
         Tokenizer tokenizer = new( );
         Parser parser = new( tokenizer );
 
-        HeaderGenerator.Initialize( );
+        HeaderGenerator.Initialize( sceneDepMgr );
 
         foreach (var file in files) {
 
