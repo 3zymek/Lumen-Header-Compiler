@@ -5,7 +5,7 @@ internal class Program {
     static void Main( string[] args ) {
 
         string inputDir = args[0] ?? throw new Exception( "Invalid dotnet argument, missing input dir" );
-        string sceneParserPath = Path.Combine( inputDir, /*"engine/include/modules/scene/format/scene_parser.hpp"*/ $"scene_parser.hpp" );
+        string sceneDepMgr = Path.Combine( inputDir, args[1] ?? throw new Exception( "Missing scene dependency manager relative path from dotnet args" ) );
 
         var files = Directory.GetFiles( inputDir, "*.hpp", SearchOption.AllDirectories )
             .Where( f => !f.Contains( Path.Combine( inputDir, "external" ) ) )
@@ -28,7 +28,8 @@ internal class Program {
 
         }
 
-        HeaderGenerator.Finalize( sceneParserPath );
+        HeaderGenerator.Finalize( sceneDepMgr );
+
 
     }
 

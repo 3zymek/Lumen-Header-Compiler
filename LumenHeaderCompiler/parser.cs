@@ -108,6 +108,7 @@ internal class Parser {
     public void Parse( ) {
 
         mComponents.Clear( );
+        mPosition = 0;
 
         while (mPosition < mTokens.Count) {
 

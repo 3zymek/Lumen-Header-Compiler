@@ -7,7 +7,6 @@ using System.Text;
 using System.Text.Json;
 
 namespace lhc;
-
 internal record JsonProperty( string reader, string imgui );
 internal record JsonRoot(
     Dictionary<string, string> paths,
@@ -40,21 +39,25 @@ internal static class HeaderGenerator {
     public static void GenerateFile( string sourceFile, List<ClassInfo> components ) {
 
         if (!File.Exists( sourceFile )) { throw new Exception( $"File {sourceFile} doesn't exist" ); }
+        if (mRoot == null) throw new Exception( "Header generator not initialized" );
 
         StringBuilder sb = new( );
-        string filePath = sourceFile + ".generated.hpp";
+        string filePath = Path.Combine(
+            Path.GetDirectoryName( sourceFile )!,
+            Path.GetFileNameWithoutExtension( sourceFile ) + ".generated.hpp" 
+            );
 
         generate_preamble( sb, sourceFile );
         foreach (var comp in components) {
 
             string compName = comp.mName.TrimStart( 'C' ).ToLower( );
-            string parseFnSig = mRoot.templates["parse_fn_signature"];
+            string parseFnSig = mRoot.templates["parse_fn_signature"]!;
             string parseFnName = parseFnSig.Substring( 0, parseFnSig.IndexOf( '(' ) );
 
             mComponents[compName] = new ClassGeneratedInfo(
                 mInfo: comp,
                 mFilepath: sourceFile,
-                mParseFnName: string.Format( parseFnName, compName ),
+                mParseFnName: string.Format( parseFnName, comp.mName ),
                 mSerializeFnName: "TO IMPLEMENT",
                 mEditorFnName: "TO IMPLEMENT"
                 );
@@ -69,16 +72,15 @@ internal static class HeaderGenerator {
 
     }
 
-    public static void Finalize( string sceneParserPath ) {
+    public static void Finalize( string outputDir ) {
 
-        if (!File.Exists( sceneParserPath )) {
-            throw new Exception( $"File {sceneParserPath} doesn't exist" );
-        }
+        if (!File.Exists( outputDir )) throw new Exception( $"File {outputDir} doesn't exist" );
+        if (mRoot == null) throw new Exception( "Header generator not initialized" );
 
-        string outputPath = Path.Combine( Path.GetDirectoryName( sceneParserPath )!,
-            "scene_parser.generated.hpp" );
-
-        Console.WriteLine( outputPath );
+        string outputPath = Path.Combine(
+            Path.GetDirectoryName( outputDir )!,
+            Path.GetFileNameWithoutExtension( outputDir ) + ".generated.hpp"
+        );
 
         finalize_scene_parser( outputPath );
 
@@ -88,15 +90,9 @@ internal static class HeaderGenerator {
 
         StringBuilder sb = new( );
 
-        generate_preamble( sb, outputPath );
+        generate_preamble( sb, outputPath, mComponents.Values.Select(v => v.mFilepath).Distinct() );
 
-        foreach (var (key, val) in mComponents) {
-
-            sb.AppendLine( $"#include \"\"" );
-
-        }
-
-        sb.Append( $"\tinline void {mRoot.templates["parse_fn_registry"]} " );
+        sb.Append( $"\tinline void {mRoot.templates["parse_fn_registry"]!} " );
         sb.AppendLine( "{" );
 
         foreach (var (key, val) in mComponents) {
@@ -122,7 +118,7 @@ internal static class HeaderGenerator {
 
     }
 
-    private static void generate_preamble( StringBuilder sb, string sourceFile ) {
+    private static void generate_preamble( StringBuilder sb, string sourceFile, IEnumerable<string>? extraIncludes = null ) {
 
         sb.AppendLine( $"//========= Copyright (C) 2026 3zymek, MIT License ============//" );
         sb.AppendLine( $"//" );
@@ -135,6 +131,13 @@ internal static class HeaderGenerator {
         sb.AppendLine( $"//=============================================================================//" );
         sb.AppendLine( $"#pragma once" );
         sb.AppendLine( $"#include \"modules/scene/format/scene_parser.hpp\"" );
+
+        if (extraIncludes != null) {
+            foreach (var include in extraIncludes) {
+                sb.AppendLine( $"#include \"{include.Replace( '\\', '/' )}\"" );
+            }
+        }
+
         sb.AppendLine( );
         sb.AppendLine( "namespace lum::fmt::detail {" );
         sb.AppendLine( );
@@ -143,14 +146,13 @@ internal static class HeaderGenerator {
 
     private static void generate_postamble( StringBuilder sb ) {
         sb.Append( "}" );
-
-        sb.AppendLine( $" // namespace {mRoot.paths["preamble_namespace"]}" );
+        sb.AppendLine( $" // namespace {mRoot.paths["preamble_namespace"]!}" );
     }
 
     private static void generate_parse_fn( StringBuilder sb, ClassInfo component ) {
 
         string compName = component.mName.TrimStart( 'C' ).ToLower( );
-        string componentAlias = mRoot.templates["parse_fn_comp_name"];
+        string componentAlias = mRoot.templates["parse_fn_comp_name"]!;
 
         sb.Append( $"\tvoid {string.Format( mRoot.templates["parse_fn_signature"], component.mName )}" );
         sb.AppendLine( "{\n" );
