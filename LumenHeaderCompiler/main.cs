@@ -30,7 +30,6 @@ internal class Program {
 
         HeaderGenerator.Finalize( sceneDepMgr );
 
-
     }
 
 }

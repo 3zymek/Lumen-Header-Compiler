@@ -37,7 +37,7 @@ internal static class HeaderGenerator {
         mRoot = JsonSerializer.Deserialize<JsonRoot>( jsonContent ) ??
             throw new Exception( $"Failed to deserialize {Path.Combine( AppContext.BaseDirectory, "config.json" )}" );
 
-        mSceneManagerPath = sceneDepMgrPath;
+        mSceneManagerPath = sceneDepMgrPath.Replace('\\', '/');
 
     }
 
@@ -55,7 +55,7 @@ internal static class HeaderGenerator {
         generate_preamble( sb, sourceFile );
         foreach (var comp in components) {
 
-            string compName = comp.mName.TrimStart( 'C' ).ToLower( );
+            string compName = comp.mName.StartsWith( 'C' ) ? comp.mName[1..].ToLower( ) : comp.mName.ToLower( );
             string parseFnSig = mRoot.templates["parse_fn_signature"]!;
             string parseFnName = parseFnSig.Substring( 0, parseFnSig.IndexOf( '(' ) );
 
@@ -71,7 +71,6 @@ internal static class HeaderGenerator {
 
         }
         generate_postamble( sb );
-
 
         File.WriteAllText( generatedPath, sb.ToString( ) );
 
@@ -95,9 +94,9 @@ internal static class HeaderGenerator {
 
         StringBuilder sb = new( );
 
-        generate_preamble( sb, outputPath, mComponents.Values.Select( v => v.mGeneratedFilepath ).Distinct( ) );
+        generate_preamble( sb, null, mComponents.Values.Select( v => v.mGeneratedFilepath ).Distinct( ) );
 
-        sb.Append( $"\tinline void {mRoot.templates["parse_fn_registry"]!} " );
+        sb.Append( $"\tinline void {mRoot!.templates["parse_fn_registry"]} " );
         sb.AppendLine( "{" );
 
         foreach (var (key, val) in mComponents) {
@@ -115,7 +114,7 @@ internal static class HeaderGenerator {
 
     private static string? type_to_reader( string type ) {
 
-        if (mRoot.types.TryGetValue( type, out var value )) {
+        if (mRoot!.types.TryGetValue( type, out var value )) {
             return value.reader;
         }
 
@@ -123,7 +122,7 @@ internal static class HeaderGenerator {
 
     }
 
-    private static void generate_preamble( StringBuilder sb, string sourceFile, IEnumerable<string>? extraIncludes = null ) {
+    private static void generate_preamble( StringBuilder sb, string? sourceFile, IEnumerable<string>? extraIncludes = null ) {
 
         sb.AppendLine( $"//========= Copyright (C) 2026 3zymek, MIT License ============//" );
         sb.AppendLine( $"//" );
@@ -135,7 +134,7 @@ internal static class HeaderGenerator {
         sb.AppendLine( $"//" );
         sb.AppendLine( $"//=============================================================================//" );
         sb.AppendLine( $"#pragma once" );
-        sb.AppendLine( $"#include \"{Path.GetFileName( sourceFile )}\"" );
+        if (sourceFile != null) sb.AppendLine( $"#include \"{Path.GetFileName( sourceFile )}\"" );
         sb.AppendLine( $"#include \"{mSceneManagerPath}\"" );
 
         if (extraIncludes != null) {
@@ -145,7 +144,7 @@ internal static class HeaderGenerator {
         }
 
         sb.AppendLine( );
-        sb.Append( $"namespace {mRoot.paths["code_namespace"]}" );
+        sb.Append( $"namespace {mRoot!.paths["code_namespace"]}" );
         sb.AppendLine( " {" );
         sb.AppendLine( );
 
@@ -153,15 +152,15 @@ internal static class HeaderGenerator {
 
     private static void generate_postamble( StringBuilder sb ) {
         sb.Append( "}" );
-        sb.AppendLine( $" // namespace {mRoot.paths["code_namespace"]}" );
+        sb.AppendLine( $" // namespace {mRoot!.paths["code_namespace"]}" );
     }
 
     private static void generate_parse_fn( StringBuilder sb, ClassInfo component ) {
 
-        string compName = component.mName.TrimStart( 'C' ).ToLower( );
-        string componentAlias = mRoot.templates["parse_fn_comp_name"]!;
+        string compName = component.mName.StartsWith( 'C' ) ? component.mName[1..].ToLower( ) : component.mName.ToLower( );
+        string componentAlias = mRoot!.templates["parse_fn_comp_name"]!;
 
-        sb.Append( $"\tvoid {string.Format( mRoot.templates["parse_fn_signature"], component.mName )}" );
+        sb.Append( $"\tinline void {string.Format( mRoot.templates["parse_fn_signature"], component.mName )}" );
         sb.AppendLine( "{\n" );
         sb.AppendLine( $"\t\t{mRoot.templates["parse_fn_body_open"]}\n" );
         sb.AppendLine( $"\t\t{component.mName} {componentAlias}; \n" );
@@ -177,8 +176,9 @@ internal static class HeaderGenerator {
                 throw new Exception( $"Unknown type: '{field.mType}' in {component.mName}.{field.mName}" );
 
             string keyword = i == 0 ? "if" : "else if";
+            string fieldName = field.mName.TrimStart( 'm' ).ToLower( );
 
-            sb.AppendLine( $"\t\t\t\t{keyword}( detail::IsString( tokens, i, \"{field.mName}\" ) )" );
+            sb.AppendLine( $"\t\t\t\t{keyword}( detail::IsString( tokens, i, \"{fieldName}\" ) )" );
             sb.AppendLine( $"\t\t\t\t\t{string.Format( mRoot.templates["parse_fn_field"], componentAlias, field.mName, reader )}" );
 
         }
