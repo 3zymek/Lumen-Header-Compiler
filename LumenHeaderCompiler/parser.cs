@@ -6,7 +6,7 @@ internal struct ClassArguments {
 
 };
 internal record FieldInfo( string mType, string mName );
-internal record ClassInfo( string mName, ClassArguments mArgs, List<FieldInfo> mFields );
+internal record ClassInfo( string mTypeName, ClassArguments mArgs, List<FieldInfo> mFields );
 
 internal class Parser {
 

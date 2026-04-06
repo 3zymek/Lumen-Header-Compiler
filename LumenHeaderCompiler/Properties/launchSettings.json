@@ -2,7 +2,7 @@
   "profiles": {
     "LumenHeaderCompiler": {
       "commandName": "Project",
-      "commandLineArgs": "engine"
+      "commandLineArgs": "engine C:\\Users\\szymek\\source\\repos\\LumenHeaderCompiler\\LumenHeaderCompiler\\bin\\Debug\\net10.0\\engine\\scenemgr\\scene_dependency_manager.hpp"
     }
   }
 }
