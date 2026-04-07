@@ -1,21 +1,33 @@
-﻿namespace lhc;
+﻿
+using System.Text.Json;
+
+namespace lhc;
+
+internal record TypeProperties( string reader, string inspector );
+internal record ConfigFile(
+    Dictionary<string, string> paths,
+    Dictionary<string, string> templates,
+    Dictionary<string, TypeProperties> types
+    );
 
 internal class Program {
 
     static void Main( string[] args ) {
 
-        string inputDir = args[0] ?? throw new Exception( "Invalid dotnet argument, missing input dir" );
-        string sceneDepMgr = Path.Combine( inputDir, args[1] ?? throw new Exception( "Missing scene dependency manager relative path from dotnet args" ) );
-
-        var files = Directory.GetFiles( inputDir, "*.hpp", SearchOption.AllDirectories )
-            .Where( f => !f.Contains( Path.Combine( inputDir, "external" ) ) )
+        string rootDir = args[0] ?? throw new Exception( "Invalid dotnet argument, missing root dir" );
+        var files = Directory.GetFiles( rootDir, "*.hpp", SearchOption.AllDirectories )
+            .Where( f => !f.Contains( Path.Combine( rootDir, "external" ) ) )
             .Where( f => !f.Contains( "internal_assets" ) )
             .Where( f => !f.EndsWith( ".generated.hpp" ) );
+
+        string jsonContent = File.ReadAllText( $"{Path.Combine( AppContext.BaseDirectory, "config.json" )}" );
+        ConfigFile config = JsonSerializer.Deserialize<ConfigFile>(jsonContent) ??
+           throw new Exception( $"Failed to deserialize {Path.Combine( AppContext.BaseDirectory, "config.json" )}" );
 
         Tokenizer tokenizer = new( );
         Parser parser = new( tokenizer );
 
-        HeaderGenerator.Initialize( sceneDepMgr );
+        HeaderGenerator.Initialize( rootDir, config );
 
         foreach (var file in files) {
 
@@ -28,7 +40,7 @@ internal class Program {
 
         }
 
-        HeaderGenerator.Finalize( sceneDepMgr );
+        HeaderGenerator.Finalize( );
 
     }
 

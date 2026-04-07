@@ -1,0 +1,218 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.Json;
+
+namespace lhc;
+
+internal record ClassGeneratedInfo(
+    ClassInfo mInfo,
+    string mGeneratedFilepath,
+    string mOriginalFilepath,
+    string mParseFnName,
+    string mSerializeFnName,
+    string mEditorFnName
+    );
+
+internal static class HeaderGenerator {
+    
+    private static ConfigFile? mCfg;
+    private static string? mRootDir;
+    private static Dictionary<string, ClassGeneratedInfo> mComponents = new( );
+
+    public static void Initialize( string root, ConfigFile config ) {
+
+        mCfg = config;
+        mRootDir = root;
+
+    }
+
+    public static void GenerateFile( string sourceFile, List<ClassInfo> components ) {
+
+        if (!File.Exists( sourceFile )) { throw new Exception( $"File {sourceFile} doesn't exist" ); }
+        if (mCfg == null) throw new Exception( "Header generator not initialized" );
+
+        StringBuilder sb = new( );
+        string generatedPath = Path.Combine(
+            Path.GetDirectoryName( sourceFile )!,
+            Path.GetFileNameWithoutExtension( sourceFile ) + ".generated.hpp"
+        );
+
+        GeneratePreamble( sb, sourceFile );
+        foreach (var comp in components) {
+
+            string compName = GetClassName( comp );
+            string parseFnSig = mCfg!.templates["parse_fn_signature"];
+            string parseFnName = parseFnSig.Substring( 0, parseFnSig.IndexOf( '(' ) );
+
+            string editorFnSig = mCfg!.templates["editor_fn_signature"];
+            string editorFnName = editorFnSig.Substring( 0, editorFnSig.IndexOf( '(' ) );
+
+            var generatedInfo = mComponents[compName] = new ClassGeneratedInfo(
+                mInfo: comp,
+                mGeneratedFilepath: generatedPath,
+                mOriginalFilepath: sourceFile,
+                mParseFnName: string.Format( parseFnName, comp.mTypeName ),
+                mSerializeFnName: "TO IMPLEMENT",
+                mEditorFnName: string.Format( editorFnName, comp.mTypeName )
+                );
+
+            ParseGenerator.GenerateParseFn( sb, comp );
+            EditorGenerator.GenerateEditorFn( generatedInfo );
+            generate_component_name_fn( sb, comp );
+
+        }
+
+        File.WriteAllText( generatedPath, sb.ToString( ) );
+
+    }
+
+    public static void Finalize( ) {
+
+        if (mCfg == null) throw new Exception( "Header generator not initialized" );
+
+        StringBuilder sb = new( );
+
+        ParseGenerator.Finalize( mRootDir!, mComponents );
+        EditorGenerator.Finalize( mRootDir!, mComponents );
+        //finalize_inspector_map( sb, outputPath );
+
+    }
+
+    public static string GetPath( string key ) {
+        return mCfg!.paths.TryGetValue( key, out var val )
+            ? val
+            : throw new Exception( $"Missing path key '{key}' in config.json" );
+    }
+
+    public static string GetTemplate( string key ) {
+        return mCfg!.templates.TryGetValue( key, out var val )
+            ? val
+            : throw new Exception( $"Missing template key '{key}' in config.json" );
+    }
+
+    public static string GetClassName( ClassInfo info ) {
+        string fallback = info.mTypeName.StartsWith( 'C' )
+            ? info.mTypeName[1..].ToLower( ) : info.mTypeName.ToLower( );
+        return info.mArgs.mID ?? fallback;
+    }
+
+    public static string GetFieldName( FieldInfo info ) {
+        return info.mName.TrimStart( 'm' ).ToLower( );
+    }
+
+    private static void finalize_inspector_map( StringBuilder sb, string outputPath ) {
+
+        string editorFnNamespace = mCfg!.templates["editor_fn_namespace"];
+        sb.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
+        sb.Append( $"\tinline void {mCfg!.templates["editor_fn_registry"]}" );
+        sb.AppendLine( " {\n" );
+
+        foreach (var (key, val) in mComponents) {
+
+            sb.AppendLine( $"\t\tmap[ HashStr(\"{val.mInfo.mArgs.mID ?? key}\") ] = {editorFnNamespace}::{val.mEditorFnName};" );
+
+        }
+
+        sb.AppendLine( "\t}\n" );
+        sb.AppendLine( "} " + $"// namespace {editorFnNamespace}" );
+
+    }
+
+    public static string? TypeToInspector( string type ) {
+        if (mCfg!.types.TryGetValue( type, out var value )) {
+            return value.inspector;
+        }
+        return null;
+    }
+
+    public static string? TypeToReader( string type ) {
+        if (mCfg!.types.TryGetValue( type, out var value )) {
+            return value.reader;
+        }
+        return null;
+    }
+
+    public static void GeneratePreamble( StringBuilder sb, string? sourceFile, IEnumerable<string>? extraIncludes = null ) {
+
+        sb.AppendLine( $"//========= Copyright (C) 2026 3zymek, MIT License ============//" );
+        sb.AppendLine( $"//" );
+        sb.AppendLine( $"// Auto-generated by Lumen Header Compiler (LHC)." );
+        sb.AppendLine( $"// Repository: https://github.com/3zymek/Lumen-Header-Compiler" );
+        sb.AppendLine( $"// Source: {Path.GetFileName( sourceFile )}" );
+        sb.AppendLine( $"//" );
+        sb.AppendLine( $"// DO NOT EDIT - changes will be overwritten on next build." );
+        sb.AppendLine( $"//" );
+        sb.AppendLine( $"//=============================================================================//" );
+        sb.AppendLine( $"#pragma once" );
+        if (sourceFile != null) sb.AppendLine( $"#include \"{Path.GetFileName( sourceFile )}\"" );
+        if (extraIncludes != null) {
+            foreach (var include in extraIncludes) {
+                sb.AppendLine( $"#include \"{include.Replace( '\\', '/' )}\"" );
+            }
+        }
+        sb.AppendLine( );
+
+    }
+
+    private static void generate_component_name_fn( StringBuilder sb, ClassInfo component ) {
+
+        string compNameNamespace = mCfg!.templates["component_get_name_namespace"];
+        sb.AppendLine( $"namespace {compNameNamespace}" + " {\n" );
+
+        sb.AppendLine( "\ttemplate<>" );
+        sb.AppendLine(
+            "\tinline " +
+            mCfg!.templates["component_get_name_return"] +
+            " " +
+            string.Format( mCfg!.templates["component_get_name_signature"], component.mTypeName ) +
+            " {\n"
+            );
+        sb.AppendLine( $"\t\treturn \"{GetClassName( component )}\";\n" );
+        sb.AppendLine( "\t}\n" );
+
+        sb.AppendLine( "} " + $"// namespace {compNameNamespace}" );
+
+    }
+
+    private static void generate_editor_fn( StringBuilder sb, ClassInfo component ) {
+       /*
+        string editorFnNamespace = mCfg!.templates["editor_fn_namespace"];
+        sb.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
+
+        string signature = string.Format( mCfg!.templates["editor_fn_signature"], component.mTypeName );
+        sb.Append( "\t" + "inline void " + signature );
+        sb.AppendLine( " { \n" );
+
+        string compName = mCfg!.templates["editor_fn_comp_name"];
+
+        string getter = string.Format(
+            mCfg!.templates["editor_fn_comp_getter"],
+            compName,
+            component.mTypeName
+            );
+
+        sb.AppendLine( "\t\t" + getter );
+
+        string check = string.Format( mCfg!.templates["editor_fn_getter_check"]?.ToString( ) ?? "", compName );
+        sb.AppendLine( "\t\t" + check );
+
+        foreach (var field in component.mFields) {
+
+            string inspector = type_to_inspector( field.mType ) ??
+                throw new Exception( $"Unknown type: '{field.mType}' in {component.mTypeName}.{field.mName}" );
+
+            string format = string.Format( inspector, compName, field.mName );
+            sb.AppendLine( "\t\t" + format + ';' );
+
+        }
+
+        sb.AppendLine( "\n\t}\n" ); // function
+        sb.AppendLine( "} " + $"// namespace {editorFnNamespace}\n" ); // namespace
+      */
+    }
+
+}
