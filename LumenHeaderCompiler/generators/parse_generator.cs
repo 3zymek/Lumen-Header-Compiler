@@ -20,7 +20,7 @@ internal static class ParseGenerator {
 
         sb.AppendLine( $"\tinline void {parseFnSig}" + " {\n" );
         sb.AppendLine( $"\t\t{HeaderGenerator.GetTemplate( "parse_fn_body_open" )}" );
-        sb.AppendLine( $"\t\t{info.mTypeName} {classVarName}" );
+        sb.AppendLine( $"\t\t{info.mTypeName} {classVarName};" );
         sb.AppendLine( $"\t\twhile( {HeaderGenerator.GetTemplate( "parse_fn_while_expr" )} )" + " {\n" );
         sb.AppendLine( $"\t\t\tif( {HeaderGenerator.GetTemplate( "parse_fn_token_check" )} )" + " {\n" );
         for (int i = 0; i < info.mFields.Count; i++) {
@@ -49,7 +49,8 @@ internal static class ParseGenerator {
 
     public static void Finalize( string root, Dictionary<string, ClassGeneratedInfo> components ) {
         
-        string sceneDepMgrPath = Path.Combine( root, HeaderGenerator.GetPath( "scene_dep_manager" ) );
+        string sceneDepMgrPath = Path.Combine( root, HeaderGenerator.GetPath( "scene_dep_manager_path" ) );
+        string sceneDepMgrInclude = HeaderGenerator.GetPath( "scene_dep_manager_include" );
         string parseFnNamespace = HeaderGenerator.GetTemplate( "parse_fn_namespace" );
 
         if (!File.Exists( sceneDepMgrPath )) throw new Exception( "Scene dependency manager path is invalid" );
@@ -60,7 +61,7 @@ internal static class ParseGenerator {
             .Distinct( )
             .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( sceneDepMgrPath )!, absPath ) );
 
-        HeaderGenerator.GeneratePreamble( sb, sceneDepMgrPath, relativeIncludes );
+        HeaderGenerator.GeneratePreamble( sb, null, new[] { sceneDepMgrInclude }.Concat( relativeIncludes ) );
 
         string mapName = "map";
         sb.AppendLine( $"namespace {parseFnNamespace}" + " {\n" );

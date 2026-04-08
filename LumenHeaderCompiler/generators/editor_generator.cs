@@ -45,7 +45,8 @@ internal static class EditorGenerator {
 
     public static void Finalize( string root, Dictionary<string, ClassGeneratedInfo> components ) {
 
-        string editorDepMgrPath = Path.Combine( root, HeaderGenerator.GetPath( "editor_dep_manager" ) );
+        string editorDepMgrPath = Path.Combine( root, HeaderGenerator.GetPath( "editor_dep_manager_path" ) );
+        string editorDepMgrInclude = HeaderGenerator.GetPath( "editor_dep_manager_include" );
 
         string editorFnNamespace = HeaderGenerator.GetTemplate( "editor_fn_namespace" );
         if (!File.Exists( editorDepMgrPath )) throw new Exception( $"Path to editor dependency manager is invalid: {editorDepMgrPath}" );
@@ -55,12 +56,12 @@ internal static class EditorGenerator {
             .Distinct( )
             .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( editorDepMgrPath )!, absPath ) );
 
-        HeaderGenerator.GeneratePreamble( mOutputBuilder, editorDepMgrPath, relativeIncludes );
+        HeaderGenerator.GeneratePreamble( mOutputBuilder, null, new[] { editorDepMgrInclude }.Concat( relativeIncludes ) );
 
         mOutputBuilder.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
 
-        generate_editor_registry( mOutputBuilder, components );
         mOutputBuilder.Append( mSbuilder.ToString( ) );
+        generate_editor_registry( mOutputBuilder, components );
 
         mOutputBuilder.AppendLine( "} " + $"// namespace {editorFnNamespace}\n" ); // namespace
 

@@ -18,7 +18,7 @@ internal record ClassGeneratedInfo(
     );
 
 internal static class HeaderGenerator {
-    
+
     private static ConfigFile? mCfg;
     private static string? mRootDir;
     private static Dictionary<string, ClassGeneratedInfo> mComponents = new( );
@@ -41,7 +41,7 @@ internal static class HeaderGenerator {
             Path.GetFileNameWithoutExtension( sourceFile ) + ".generated.hpp"
         );
 
-        GeneratePreamble( sb, sourceFile );
+        GeneratePreamble( sb, sourceFile, new[] { GetPath( "scene_dep_manager_include" ) } );
         foreach (var comp in components) {
 
             string compName = GetClassName( comp );
@@ -179,40 +179,40 @@ internal static class HeaderGenerator {
     }
 
     private static void generate_editor_fn( StringBuilder sb, ClassInfo component ) {
-       /*
-        string editorFnNamespace = mCfg!.templates["editor_fn_namespace"];
-        sb.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
+        /*
+         string editorFnNamespace = mCfg!.templates["editor_fn_namespace"];
+         sb.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
 
-        string signature = string.Format( mCfg!.templates["editor_fn_signature"], component.mTypeName );
-        sb.Append( "\t" + "inline void " + signature );
-        sb.AppendLine( " { \n" );
+         string signature = string.Format( mCfg!.templates["editor_fn_signature"], component.mTypeName );
+         sb.Append( "\t" + "inline void " + signature );
+         sb.AppendLine( " { \n" );
 
-        string compName = mCfg!.templates["editor_fn_comp_name"];
+         string compName = mCfg!.templates["editor_fn_comp_name"];
 
-        string getter = string.Format(
-            mCfg!.templates["editor_fn_comp_getter"],
-            compName,
-            component.mTypeName
-            );
+         string getter = string.Format(
+             mCfg!.templates["editor_fn_comp_getter"],
+             compName,
+             component.mTypeName
+             );
 
-        sb.AppendLine( "\t\t" + getter );
+         sb.AppendLine( "\t\t" + getter );
 
-        string check = string.Format( mCfg!.templates["editor_fn_getter_check"]?.ToString( ) ?? "", compName );
-        sb.AppendLine( "\t\t" + check );
+         string check = string.Format( mCfg!.templates["editor_fn_getter_check"]?.ToString( ) ?? "", compName );
+         sb.AppendLine( "\t\t" + check );
 
-        foreach (var field in component.mFields) {
+         foreach (var field in component.mFields) {
 
-            string inspector = type_to_inspector( field.mType ) ??
-                throw new Exception( $"Unknown type: '{field.mType}' in {component.mTypeName}.{field.mName}" );
+             string inspector = type_to_inspector( field.mType ) ??
+                 throw new Exception( $"Unknown type: '{field.mType}' in {component.mTypeName}.{field.mName}" );
 
-            string format = string.Format( inspector, compName, field.mName );
-            sb.AppendLine( "\t\t" + format + ';' );
+             string format = string.Format( inspector, compName, field.mName );
+             sb.AppendLine( "\t\t" + format + ';' );
 
-        }
+         }
 
-        sb.AppendLine( "\n\t}\n" ); // function
-        sb.AppendLine( "} " + $"// namespace {editorFnNamespace}\n" ); // namespace
-      */
+         sb.AppendLine( "\n\t}\n" ); // function
+         sb.AppendLine( "} " + $"// namespace {editorFnNamespace}\n" ); // namespace
+       */
     }
 
 }
