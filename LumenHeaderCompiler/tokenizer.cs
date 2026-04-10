@@ -12,7 +12,10 @@ internal enum TokenType {
     Comma,
     Equals,
     Colon,
-    String
+    String,
+    Number,
+    LAngle,
+    RAngle
 }
 internal record Token( TokenType mType, string mValue );
 
@@ -49,12 +52,11 @@ internal class Tokenizer {
                 continue;
             }
 
-            else if(c == '#') {
+            else if (c == '#') {
                 while (i < content.Length && content[i] != '\n')
                     i++;
                 continue;
             }
-
             else if (char.IsLetter( c ) || c == '_') {
 
                 string value = "";
@@ -74,15 +76,32 @@ internal class Tokenizer {
                 else mTokens.Add( new( TokenType.Identifier, value ) );
 
             }
-            else if(c == '"') {
+            else if (char.IsDigit( c ) || (c == '-' && i + 1 < content.Length && char.IsDigit( content[i + 1] ))) {
+
+                string value = "";
+
+                if (c == '-') value += content[i++];
+
+                while (i < content.Length && (char.IsDigit( content[i] ) || content[i] == '.'))
+                    value += content[i++];
+
+                if (i < content.Length && (content[i] == 'f' || content[i] == 'u' || content[i] == 'l' || content[i] == 'L'))
+                    i++;
+
+                mTokens.Add( new( TokenType.Number, value ) );
+
+            }
+            else if (c == '"') {
                 i++;
                 string value = "";
-                while(i < content.Length && content[i] != '"') {
+                while (i < content.Length && content[i] != '"') {
                     value += content[i++];
                 }
                 i++;
                 mTokens.Add( new( TokenType.String, value ) );
             }
+            else if (c == '<') { mTokens.Add( new( TokenType.LAngle, "<" ) ); i++; }
+            else if (c == '>') { mTokens.Add( new( TokenType.RAngle, ">" ) ); i++; }
             else if (c == '{') { mTokens.Add( new( TokenType.LBracket, "{" ) ); i++; }
             else if (c == '}') { mTokens.Add( new( TokenType.RBracket, "}" ) ); i++; }
             else if (c == '(') { mTokens.Add( new( TokenType.LParen, "(" ) ); i++; }

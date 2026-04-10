@@ -14,18 +14,17 @@ internal static class EditorGenerator {
 
     public static void GenerateEditorFn( ClassGeneratedInfo info ) {
 
-        string signature = string.Format( HeaderGenerator.GetTemplate( "editor_fn_signature" ), info.mInfo.mTypeName );
+        string signature = HeaderGenerator.GetTemplate( "editor_fn_signature" ).FormatWith( "ClassName", info.mInfo.mTypeName );
         mSbuilder.AppendLine( $"\tinline void {signature}" + " {\n" );
-        string classVarName = HeaderGenerator.GetTemplate( "editor_fn_comp_name" );
-        string getter = string.Format(
-            HeaderGenerator.GetTemplate( "editor_fn_comp_getter" ),
-            classVarName,
-            info.mInfo.mTypeName
-        );
+        string variableName = HeaderGenerator.GetTemplate( "editor_fn_comp_name" );
+        string getter = HeaderGenerator.GetTemplate( "editor_fn_comp_getter" ).FormatWith( new Dictionary<string, string> {
+            { "Var", variableName },
+            { "ClassName", info.mInfo.mTypeName }
+        } );
 
         mSbuilder.AppendLine( $"\t\t{getter}" );
 
-        string check = string.Format( HeaderGenerator.GetTemplate( "editor_fn_getter_check" ), classVarName );
+        string check = HeaderGenerator.GetTemplate( "editor_fn_getter_check" ).FormatWith( "Var", variableName );
         mSbuilder.AppendLine( $"\t\t{check}" );
 
         foreach (var field in info.mInfo.mFields) {
@@ -33,14 +32,27 @@ internal static class EditorGenerator {
             string inspector = HeaderGenerator.TypeToInspector( field.mType ) ??
                throw new Exception( $"Unknown type: '{field.mType}' in {info.mInfo.mTypeName}.{field.mName}" );
 
-            mSbuilder.AppendLine( $"\t\t{string.Format( inspector, classVarName, field.mName )};" );
+            string fieldName = HeaderGenerator.GetFieldName( field );
+            string displayName = field.mArgs.mDisplayName ?? char.ToUpper( fieldName[0] ) + fieldName.Substring( 1 );
+            var dict = new Dictionary<string, string> {
+                { "DisplayName", displayName },
+                { "FieldName", field.mName },
+                { "Var", variableName }
+            };
+            if (inspector.Contains( "{Speed}" ))
+                dict["Speed"] = field.mArgs.mDragSpeed ?? HeaderGenerator.GetDefault( "drag_speed" );
 
+            if (inspector.Contains( "{MinVal}" ))
+                dict["MinVal"] = field.mArgs.mMinVal ?? HeaderGenerator.GetDefault( "min_val" );
+
+            if (inspector.Contains( "{MaxVal}" ))
+                dict["MaxVal"] = field.mArgs.mMaxVal ?? HeaderGenerator.GetDefault( "max_val" );
+
+            mSbuilder.AppendLine( $"\t\t{inspector.FormatWith( dict )};" );
         }
 
         mSbuilder.AppendLine( "\n\t}\n" );
-
         mIncludes.Add( info.mOriginalFilepath );
-
     }
 
     public static void Finalize( string root, Dictionary<string, ClassGeneratedInfo> components ) {
@@ -77,7 +89,7 @@ internal static class EditorGenerator {
     private static void generate_editor_registry( StringBuilder sb, Dictionary<string, ClassGeneratedInfo> components ) {
 
         string mapName = "map";
-        sb.AppendLine( $"\tinline void {string.Format( HeaderGenerator.GetTemplate( "editor_fn_registry" ), mapName )}" + " {" );
+        sb.AppendLine( $"\tinline void {HeaderGenerator.GetTemplate( "editor_fn_registry" ).FormatWith( "Param", mapName )}" + " {" );
 
         foreach (var (key, val) in components) {
             sb.AppendLine( $"\t\t{mapName}[ HashStr( \"{HeaderGenerator.GetClassName( val.mInfo )}\" ) ] = {val.mEditorFnName};" );

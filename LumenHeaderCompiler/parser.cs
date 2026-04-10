@@ -1,12 +1,15 @@
 ﻿namespace lhc;
 
-internal struct ClassArguments {
+internal struct QualifierArgs {
 
-    public string? mID;
+    public string? mDisplayName;
+    public string? mMinVal;
+    public string? mMaxVal;
+    public string? mDragSpeed;
 
 };
-internal record FieldInfo( string mType, string mName );
-internal record ClassInfo( string mTypeName, ClassArguments mArgs, List<FieldInfo> mFields );
+internal record FieldInfo( string mType, QualifierArgs mArgs, string mName );
+internal record ClassInfo( string mTypeName, QualifierArgs mArgs, List<FieldInfo> mFields );
 
 internal class Parser {
 
@@ -37,6 +40,13 @@ internal class Parser {
 
         string type = expect( TokenType.Identifier ).mValue;
 
+        if (mCurrent.mType == TokenType.LAngle) {
+            while (mCurrent.mType != TokenType.RAngle) {
+                increment( );
+            }
+            increment( );
+        }
+
         while (mCurrent.mType == TokenType.Colon) {
             increment( );
             if (mCurrent.mType == TokenType.Colon)
@@ -52,6 +62,9 @@ internal class Parser {
 
         expect( TokenType.Macro );
         expect( TokenType.LParen );
+
+        QualifierArgs args = read_property_args( );
+
         expect( TokenType.RParen );
 
         if (mComponents.Count == 0)
@@ -60,25 +73,79 @@ internal class Parser {
         string type = parse_type( );
         string name = parse_name( );
 
-        mComponents.Last( ).mFields.Add( new FieldInfo( type, name ) );
+        while (mCurrent.mType != TokenType.Semicolon)
+            increment( );
+        increment( );
+
+        mComponents.Last( ).mFields.Add( new FieldInfo( type, args, name ) );
 
     }
 
-    private ClassArguments read_class_args( ) {
+    private QualifierArgs read_property_args( ) {
 
-        ClassArguments args = new( );
+        QualifierArgs args = new( );
 
         while (mCurrent.mType != TokenType.RParen) {
 
             if (mCurrent.mType == TokenType.Identifier) {
 
-                if (mCurrent.mValue == "id") {
+                if (mCurrent.mValue.ToLower( ) == "displayname") {
 
                     increment( );
                     expect( TokenType.Equals );
-                    args.mID = expect( TokenType.String ).mValue;
+                    args.mDisplayName = expect( TokenType.String ).mValue;
 
                 }
+                else if (mCurrent.mValue.ToLower( ) == "minval") {
+
+                    increment( );
+                    expect( TokenType.Equals );
+                    args.mMinVal = expect( TokenType.Number ).mValue;
+
+                }
+                else if (mCurrent.mValue.ToLower( ) == "maxval") {
+
+                    increment( );
+                    expect( TokenType.Equals );
+                    args.mMaxVal = expect( TokenType.Number ).mValue;
+
+                }
+                else if (mCurrent.mValue.ToLower( ) == "dragspeed") {
+
+                    increment( );
+                    expect( TokenType.Equals );
+                    args.mDragSpeed = expect( TokenType.Number ).mValue;
+
+                }
+                else increment( );
+
+
+            }
+            else increment( );
+
+        }
+
+        return args;
+
+    }
+
+    private QualifierArgs read_class_args( ) {
+
+        QualifierArgs args = new( );
+
+        while (mCurrent.mType != TokenType.RParen) {
+
+            if (mCurrent.mType == TokenType.Identifier) {
+
+                if (mCurrent.mValue.ToLower( ) == "displayname") {
+
+                    increment( );
+                    expect( TokenType.Equals );
+                    args.mDisplayName = expect( TokenType.String ).mValue;
+
+                }
+                else increment( );
+
 
             }
             else increment( );
@@ -94,7 +161,7 @@ internal class Parser {
         expect( TokenType.Macro );
         expect( TokenType.LParen );
 
-        ClassArguments args = read_class_args( );
+        QualifierArgs args = read_class_args( );
 
         expect( TokenType.RParen );
 

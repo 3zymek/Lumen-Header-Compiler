@@ -45,19 +45,19 @@ internal static class HeaderGenerator {
         foreach (var comp in components) {
 
             string compName = GetClassName( comp );
-            string parseFnSig = mCfg!.templates["parse_fn_signature"];
+            string parseFnSig = GetTemplate( "parse_fn_signature" );
             string parseFnName = parseFnSig.Substring( 0, parseFnSig.IndexOf( '(' ) );
 
-            string editorFnSig = mCfg!.templates["editor_fn_signature"];
+            string editorFnSig = GetTemplate( "editor_fn_signature" );
             string editorFnName = editorFnSig.Substring( 0, editorFnSig.IndexOf( '(' ) );
 
             var generatedInfo = mComponents[compName] = new ClassGeneratedInfo(
                 mInfo: comp,
                 mGeneratedFilepath: generatedPath,
                 mOriginalFilepath: sourceFile,
-                mParseFnName: string.Format( parseFnName, comp.mTypeName ),
+                mParseFnName: parseFnName.FormatWith( "ClassName", comp.mTypeName ),
                 mSerializeFnName: "TO IMPLEMENT",
-                mEditorFnName: string.Format( editorFnName, comp.mTypeName )
+                mEditorFnName: editorFnName.FormatWith( "ClassName", comp.mTypeName )
                 );
 
             ParseGenerator.GenerateParseFn( sb, comp );
@@ -70,6 +70,17 @@ internal static class HeaderGenerator {
 
     }
 
+    public static string FormatWith( this string template, Dictionary<string, string> values ) {
+        string result = template;
+        foreach (var pair in values) {
+            result = result.Replace( $"{{{pair.Key}}}", pair.Value );
+        }
+        return result;
+    }
+    public static string FormatWith( this string template, string key, string value ) {
+        return template.Replace( $"{{{key}}}", value );
+    }
+
     public static void Finalize( ) {
 
         if (mCfg == null) throw new Exception( "Header generator not initialized" );
@@ -78,7 +89,6 @@ internal static class HeaderGenerator {
 
         ParseGenerator.Finalize( mRootDir!, mComponents );
         EditorGenerator.Finalize( mRootDir!, mComponents );
-        //finalize_inspector_map( sb, outputPath );
 
     }
 
@@ -94,32 +104,20 @@ internal static class HeaderGenerator {
             : throw new Exception( $"Missing template key '{key}' in config.json" );
     }
 
+    public static string GetDefault( string key ) {
+        return mCfg!.defaults.TryGetValue( key, out var val )
+            ? val
+            : throw new Exception( $"Missing defaults key '{key}' in config.json" );
+    }
+
     public static string GetClassName( ClassInfo info ) {
         string fallback = info.mTypeName.StartsWith( 'C' )
             ? info.mTypeName[1..].ToLower( ) : info.mTypeName.ToLower( );
-        return info.mArgs.mID ?? fallback;
+        return info.mArgs.mDisplayName ?? fallback;
     }
 
     public static string GetFieldName( FieldInfo info ) {
         return info.mName.TrimStart( 'm' ).ToLower( );
-    }
-
-    private static void finalize_inspector_map( StringBuilder sb, string outputPath ) {
-
-        string editorFnNamespace = mCfg!.templates["editor_fn_namespace"];
-        sb.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
-        sb.Append( $"\tinline void {mCfg!.templates["editor_fn_registry"]}" );
-        sb.AppendLine( " {\n" );
-
-        foreach (var (key, val) in mComponents) {
-
-            sb.AppendLine( $"\t\tmap[ HashStr(\"{val.mInfo.mArgs.mID ?? key}\") ] = {editorFnNamespace}::{val.mEditorFnName};" );
-
-        }
-
-        sb.AppendLine( "\t}\n" );
-        sb.AppendLine( "} " + $"// namespace {editorFnNamespace}" );
-
     }
 
     public static string? TypeToInspector( string type ) {
@@ -160,15 +158,15 @@ internal static class HeaderGenerator {
 
     private static void generate_component_name_fn( StringBuilder sb, ClassInfo component ) {
 
-        string compNameNamespace = mCfg!.templates["component_get_name_namespace"];
+        string compNameNamespace = GetTemplate( "component_get_name_namespace" );
         sb.AppendLine( $"namespace {compNameNamespace}" + " {\n" );
 
         sb.AppendLine( "\ttemplate<>" );
         sb.AppendLine(
             "\tinline " +
-            mCfg!.templates["component_get_name_return"] +
+            GetTemplate( "component_get_name_return" ) +
             " " +
-            string.Format( mCfg!.templates["component_get_name_signature"], component.mTypeName ) +
+            GetTemplate( "component_get_name_signature" ).FormatWith( "ClassName", component.mTypeName ) +
             " {\n"
             );
         sb.AppendLine( $"\t\treturn \"{GetClassName( component )}\";\n" );
@@ -176,43 +174,6 @@ internal static class HeaderGenerator {
 
         sb.AppendLine( "} " + $"// namespace {compNameNamespace}" );
 
-    }
-
-    private static void generate_editor_fn( StringBuilder sb, ClassInfo component ) {
-        /*
-         string editorFnNamespace = mCfg!.templates["editor_fn_namespace"];
-         sb.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
-
-         string signature = string.Format( mCfg!.templates["editor_fn_signature"], component.mTypeName );
-         sb.Append( "\t" + "inline void " + signature );
-         sb.AppendLine( " { \n" );
-
-         string compName = mCfg!.templates["editor_fn_comp_name"];
-
-         string getter = string.Format(
-             mCfg!.templates["editor_fn_comp_getter"],
-             compName,
-             component.mTypeName
-             );
-
-         sb.AppendLine( "\t\t" + getter );
-
-         string check = string.Format( mCfg!.templates["editor_fn_getter_check"]?.ToString( ) ?? "", compName );
-         sb.AppendLine( "\t\t" + check );
-
-         foreach (var field in component.mFields) {
-
-             string inspector = type_to_inspector( field.mType ) ??
-                 throw new Exception( $"Unknown type: '{field.mType}' in {component.mTypeName}.{field.mName}" );
-
-             string format = string.Format( inspector, compName, field.mName );
-             sb.AppendLine( "\t\t" + format + ';' );
-
-         }
-
-         sb.AppendLine( "\n\t}\n" ); // function
-         sb.AppendLine( "} " + $"// namespace {editorFnNamespace}\n" ); // namespace
-       */
     }
 
 }

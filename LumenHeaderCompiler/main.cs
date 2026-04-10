@@ -7,6 +7,7 @@ internal record TypeProperties( string reader, string inspector );
 internal record ConfigFile(
     Dictionary<string, string> paths,
     Dictionary<string, string> templates,
+    Dictionary<string, string> defaults,
     Dictionary<string, TypeProperties> types
     );
 
@@ -28,12 +29,13 @@ internal class Program {
         Parser parser = new( tokenizer );
 
         HeaderGenerator.Initialize( rootDir, config );
-
+        
         foreach (var file in files) {
 
             tokenizer.Tokenize( file.ToString( ) );
+            Console.WriteLine( $"Parsing: {file}" );
             parser.Parse( );
-
+            
             if (parser.mComponents.Count > 0) {
                 HeaderGenerator.GenerateFile( file, parser.mComponents );
             }

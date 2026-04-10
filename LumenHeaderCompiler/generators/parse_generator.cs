@@ -16,7 +16,7 @@ internal static class ParseGenerator {
 
         string className = HeaderGenerator.GetClassName( info );
         string classVarName = HeaderGenerator.GetTemplate( "parse_fn_var_name" );
-        string parseFnSig = string.Format( HeaderGenerator.GetTemplate( "parse_fn_signature" ), info.mTypeName );
+        string parseFnSig = HeaderGenerator.GetTemplate( "parse_fn_signature" ).FormatWith( "ClassName", info.mTypeName );
 
         sb.AppendLine( $"\tinline void {parseFnSig}" + " {\n" );
         sb.AppendLine( $"\t\t{HeaderGenerator.GetTemplate( "parse_fn_body_open" )}" );
@@ -31,24 +31,30 @@ internal static class ParseGenerator {
 
             string keyword = i == 0 ? "if" : "else if";
             string fieldName = HeaderGenerator.GetFieldName( field );
-            string statement = $"{keyword}( {string.Format( HeaderGenerator.GetTemplate( "parse_fn_while_statement" ), fieldName )}";
+            string statement = $"{keyword}( {HeaderGenerator.GetTemplate( "parse_fn_while_statement" ).FormatWith( "Value", fieldName )}";
 
-            sb.AppendLine( $"\t\t\t\t{statement} )");
-            sb.AppendLine( $"\t\t\t\t\t{string.Format( HeaderGenerator.GetTemplate( "parse_fn_field" ), classVarName, field.mName, reader )}" );
+            sb.AppendLine( $"\t\t\t\t{statement} )" );
+            string fieldFormatted = HeaderGenerator.GetTemplate( "parse_fn_field" ).FormatWith( new Dictionary<string, string> {
+                { "Var", classVarName },
+                { "FieldName", field.mName },
+                { "Reader", reader }
+            } );
+
+            sb.AppendLine( $"\t\t\t\t\t{fieldFormatted}" );
 
         }
 
         sb.AppendLine( "\t\t\t}" );
         sb.AppendLine( "\t\t\ti++;" );
         sb.AppendLine( "\t\t}\n" );
-        sb.AppendLine( $"\t\t{string.Format( HeaderGenerator.GetTemplate("parse_fn_add"), classVarName )}\n" );
+        sb.AppendLine( $"\t\t{HeaderGenerator.GetTemplate( "parse_fn_add" ).FormatWith( "Var", classVarName )}\n" );
         sb.AppendLine( "\t}\n" ); // function
         sb.AppendLine( "} " + $"// namespace {parseFnNamespace}\n" ); // namespace
 
     }
 
     public static void Finalize( string root, Dictionary<string, ClassGeneratedInfo> components ) {
-        
+
         string sceneDepMgrPath = Path.Combine( root, HeaderGenerator.GetPath( "scene_dep_manager_path" ) );
         string sceneDepMgrInclude = HeaderGenerator.GetPath( "scene_dep_manager_include" );
         string parseFnNamespace = HeaderGenerator.GetTemplate( "parse_fn_namespace" );
@@ -65,7 +71,7 @@ internal static class ParseGenerator {
 
         string mapName = "map";
         sb.AppendLine( $"namespace {parseFnNamespace}" + " {\n" );
-        sb.AppendLine( $"\tinline void {string.Format( HeaderGenerator.GetTemplate( "parse_fn_registry" ), mapName )}" + " {" );
+        sb.AppendLine( $"\tinline void {HeaderGenerator.GetTemplate( "parse_fn_registry" ).FormatWith( "Param", mapName )}" + " {" );
 
         foreach (var (key, val) in components) {
             sb.AppendLine( $"\t\t{mapName}[ HashStr(\"{HeaderGenerator.GetClassName( val.mInfo )}\") ] = {val.mParseFnName};" );
