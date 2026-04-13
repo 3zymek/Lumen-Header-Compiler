@@ -117,7 +117,11 @@ internal static class HeaderGenerator {
     }
 
     public static string GetFieldName( FieldInfo info ) {
-        return info.mName.TrimStart( 'm' ).ToLower( );
+        string name = info.mName;
+        if (name.Length > 1 && mCfg!.prefixes.Contains( name[0].ToString( ) ) && char.IsUpper( name[1] )) {
+            name = name.Substring( 1 );
+        }
+        return name.ToLower( );
     }
 
     public static string? TypeToInspector( string type ) {
@@ -166,7 +170,7 @@ internal static class HeaderGenerator {
             "\tinline " +
             GetTemplate( "component_get_name_return" ) +
             " " +
-            GetTemplate( "component_get_name_signature" ).FormatWith( "ClassName", component.mTypeName ) +
+            GetTemplate( "component_get_name_signature" ).FormatWith( "ClassName", component.mTypeName) +
             " {\n"
             );
         sb.AppendLine( $"\t\treturn \"{GetClassName( component )}\";\n" );
