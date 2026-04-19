@@ -42,9 +42,9 @@ internal static class HeaderGenerator {
         );
 
         GeneratePreamble( sb, sourceFile, new[] { GetPath( "scene_dep_manager_include" ) } );
-        foreach (var comp in components) {
+        foreach (var info in components) {
 
-            string compName = GetClassName( comp );
+            string compName = GetClassParseName( info );
             string parseFnSig = GetTemplate( "parse_fn_signature" );
             string parseFnName = parseFnSig.Substring( 0, parseFnSig.IndexOf( '(' ) );
 
@@ -52,17 +52,35 @@ internal static class HeaderGenerator {
             string editorFnName = editorFnSig.Substring( 0, editorFnSig.IndexOf( '(' ) );
 
             var generatedInfo = mComponents[compName] = new ClassGeneratedInfo(
-                mInfo: comp,
+                mInfo: info,
                 mGeneratedFilepath: generatedPath,
                 mOriginalFilepath: sourceFile,
-                mParseFnName: parseFnName.FormatWith( "ClassName", comp.mTypeName ),
+                mParseFnName: parseFnName.FormatWith( "ClassName", info.mTypeName ),
                 mSerializeFnName: "TO IMPLEMENT",
-                mEditorFnName: editorFnName.FormatWith( "ClassName", comp.mTypeName )
+                mEditorFnName: editorFnName.FormatWith( "ClassName", info.mTypeName )
                 );
 
-            ParseGenerator.GenerateParseFn( sb, comp );
+            ParseGenerator.GenerateParseFn( sb, info );
             EditorGenerator.GenerateEditorFn( generatedInfo );
-            generate_component_name_fn( sb, comp );
+
+            FGenerateNameGetterArgs args = new( );
+            args.mSignature = GetTemplate( "get_parse_name_signature" );
+            args.mNamespace = GetTemplate( "get_parse_name_namespace" );
+            args.mReturnType = GetTemplate( "get_parse_name_return" );
+            args.mReturnVal = GetClassParseName( info );
+            generate_name_getter_fn( sb, info, args );
+
+            args.mSignature = GetTemplate( "get_display_name_signature" );
+            args.mNamespace = GetTemplate( "get_display_name_namespace" );
+            args.mReturnType = GetTemplate( "get_display_name_return" );
+            args.mReturnVal = GetClassDisplayName( info );
+            generate_name_getter_fn( sb, info, args );
+
+            args.mSignature = GetTemplate( "get_category_name_signature" );
+            args.mNamespace = GetTemplate( "get_category_name_namespace" );
+            args.mReturnType = GetTemplate( "get_category_name_return" );
+            args.mReturnVal = info.mArgs.mCategoryName ?? HeaderGenerator.GetDefault( "category" );
+            generate_name_getter_fn( sb, info, args );
 
         }
 
@@ -104,16 +122,40 @@ internal static class HeaderGenerator {
             : throw new Exception( $"Missing template key '{key}' in config.json" );
     }
 
+    public static Dictionary<string, string> GetCategoryColors( ) {
+        return mCfg!.category_colors;
+    }
+
     public static string GetDefault( string key ) {
         return mCfg!.defaults.TryGetValue( key, out var val )
             ? val
             : throw new Exception( $"Missing defaults key '{key}' in config.json" );
     }
 
-    public static string GetClassName( ClassInfo info ) {
+    private static string camel_case_to_display( string name ) {
+        return System.Text.RegularExpressions.Regex.Replace( name, "([A-Z])", " $1" ).Trim( );
+    }
+
+    public static string GetClassParseName( ClassInfo info ) {
         string fallback = info.mTypeName.StartsWith( 'C' )
-            ? info.mTypeName[1..].ToLower( ) : info.mTypeName.ToLower( );
-        return info.mArgs.mDisplayName ?? fallback;
+            ? info.mTypeName[1..] : info.mTypeName;
+        fallback = System.Text.RegularExpressions.Regex.Replace( fallback, "([A-Z])", "_$1" )
+            .TrimStart( '_' ).ToLower( );
+        return info.mArgs.mParseName ?? fallback;
+    }
+
+    public static string GetClassDisplayName( ClassInfo info ) {
+        string fallback = info.mTypeName.StartsWith( 'C' )
+            ? info.mTypeName[1..] : info.mTypeName;
+        return info.mArgs.mDisplayName ?? camel_case_to_display( fallback );
+    }
+
+    public static string GetFieldDisplayName( FieldInfo info ) {
+        string name = info.mName;
+        if (name.Length > 1 && mCfg!.prefixes.Contains( name[0].ToString( ) ) && char.IsUpper( name[1] )) {
+            name = name.Substring( 1 );
+        }
+        return info.mArgs.mDisplayName ?? camel_case_to_display( name );
     }
 
     public static string GetFieldName( FieldInfo info ) {
@@ -121,7 +163,7 @@ internal static class HeaderGenerator {
         if (name.Length > 1 && mCfg!.prefixes.Contains( name[0].ToString( ) ) && char.IsUpper( name[1] )) {
             name = name.Substring( 1 );
         }
-        return name.ToLower( );
+        return name.ToLower( ).Replace( ' ', '_' );
     }
 
     public static string? TypeToInspector( string type ) {
@@ -160,23 +202,29 @@ internal static class HeaderGenerator {
 
     }
 
-    private static void generate_component_name_fn( StringBuilder sb, ClassInfo component ) {
+    private struct FGenerateNameGetterArgs {
 
-        string compNameNamespace = GetTemplate( "component_get_name_namespace" );
-        sb.AppendLine( $"namespace {compNameNamespace}" + " {\n" );
+        public string mNamespace;
+        public string mReturnType;
+        public string mSignature;
+        public string mReturnVal;
 
+    }
+
+    private static void generate_name_getter_fn( StringBuilder sb, ClassInfo info, FGenerateNameGetterArgs args ) {
+
+        sb.AppendLine( $"namespace {args.mNamespace}" + " {\n" );
         sb.AppendLine( "\ttemplate<>" );
         sb.AppendLine(
             "\tinline " +
-            GetTemplate( "component_get_name_return" ) +
+            args.mReturnType +
             " " +
-            GetTemplate( "component_get_name_signature" ).FormatWith( "ClassName", component.mTypeName) +
-            " {\n"
+            args.mSignature.FormatWith( "ClassName", info.mTypeName ) +
+            " {"
             );
-        sb.AppendLine( $"\t\treturn \"{GetClassName( component )}\";\n" );
+        sb.AppendLine( $"\t\treturn \"{args.mReturnVal}\";" );
         sb.AppendLine( "\t}\n" );
-
-        sb.AppendLine( "} " + $"// namespace {compNameNamespace}" );
+        sb.AppendLine( "} " + $"// namespace {args.mNamespace}" );
 
     }
 

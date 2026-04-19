@@ -14,7 +14,7 @@ internal static class ParseGenerator {
 
         sb.AppendLine( $"namespace {parseFnNamespace}" + " {\n" );
 
-        string className = HeaderGenerator.GetClassName( info );
+        string className = HeaderGenerator.GetClassParseName( info );
         string classVarName = HeaderGenerator.GetTemplate( "parse_fn_var_name" );
         string parseFnSig = HeaderGenerator.GetTemplate( "parse_fn_signature" ).FormatWith( "ClassName", info.mTypeName );
 
@@ -47,9 +47,9 @@ internal static class ParseGenerator {
         sb.AppendLine( "\t\t\t}" );
         sb.AppendLine( "\t\t\ti++;" );
         sb.AppendLine( "\t\t}\n" );
-        sb.AppendLine( $"\t\t{HeaderGenerator.GetTemplate( "parse_fn_add" ).FormatWith( "Var", classVarName )}\n" );
+        sb.AppendLine( $"\t\t{ HeaderGenerator.GetTemplate( "parse_fn_add" ).FormatWith( "Var", classVarName ) }\n" );
         sb.AppendLine( "\t}\n" ); // function
-        sb.AppendLine( "} " + $"// namespace {parseFnNamespace}\n" ); // namespace
+        sb.AppendLine( "} " + $"// namespace { parseFnNamespace }\n" ); // namespace
 
     }
 
@@ -74,7 +74,7 @@ internal static class ParseGenerator {
         sb.AppendLine( $"\tinline void {HeaderGenerator.GetTemplate( "parse_fn_registry" ).FormatWith( "Param", mapName )}" + " {" );
 
         foreach (var (key, val) in components) {
-            sb.AppendLine( $"\t\t{mapName}[ HashStr(\"{HeaderGenerator.GetClassName( val.mInfo )}\") ] = {val.mParseFnName};" );
+            sb.AppendLine( $"\t\t{mapName}[ HashStr(\"{HeaderGenerator.GetClassParseName( val.mInfo )}\") ] = {val.mParseFnName};" );
         }
 
         sb.AppendLine( "\t}\n" ); // function

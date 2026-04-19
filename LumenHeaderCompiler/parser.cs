@@ -3,6 +3,8 @@
 internal struct QualifierArgs {
 
     public string? mDisplayName;
+    public string? mParseName;
+    public string? mCategoryName;
     public string? mMinVal;
     public string? mMaxVal;
     public string? mDragSpeed;
@@ -138,10 +140,24 @@ internal class Parser {
             if (mCurrent.mType == TokenType.Identifier) {
 
                 if (mCurrent.mValue.ToLower( ) == "displayname") {
-
+                    
                     increment( );
                     expect( TokenType.Equals );
                     args.mDisplayName = expect( TokenType.String ).mValue;
+                    
+                }
+                else if(mCurrent.mValue.ToLower() == "parsename") {
+
+                    increment( );
+                    expect( TokenType.Equals );
+                    args.mParseName = expect( TokenType.String ).mValue;
+
+                }
+                else if(mCurrent.mValue.ToLower() == "category") {
+
+                    increment( );
+                    expect( TokenType.Equals );
+                    args.mCategoryName = expect( TokenType.String ).mValue;
 
                 }
                 else increment( );

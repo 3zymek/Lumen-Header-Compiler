@@ -6,6 +6,7 @@ namespace lhc;
 internal record TypeProperties( string reader, string inspector );
 internal record ConfigFile(
     Dictionary<string, string> paths,
+    Dictionary<string, string> category_colors,
     List<string> prefixes,
     Dictionary<string, string> templates,
     Dictionary<string, string> defaults,
