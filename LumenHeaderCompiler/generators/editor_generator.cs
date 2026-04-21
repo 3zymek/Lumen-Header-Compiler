@@ -96,7 +96,12 @@ internal static class EditorGenerator {
         foreach (var (key, val) in components) {
             string displayName = HeaderGenerator.GetClassDisplayName( val.mInfo );
             string category = val.mInfo.mArgs.mCategoryName ?? HeaderGenerator.GetDefault( "category" );
-            sb.AppendLine( $"\t\t{mapName}[ HashStr( \"{HeaderGenerator.GetClassParseName( val.mInfo )}\" ) ] = {{ {val.mEditorFnName}, \"{displayName}\", \"{category}\" }};" );
+            sb.AppendLine( $"\t\t{mapName}[ HashStr( \"{HeaderGenerator.GetClassParseName( val.mInfo )}\" ) ] = {{\n " +
+                $"\t\t\t{val.mEditorFnName},\n " +
+                $"\t\t\t{HeaderGenerator.GetTemplate("editor_fn_registry_add_fn").FormatWith("ClassName", val.mInfo.mTypeName)},\n" +
+                $"\t\t\t\"{displayName}\",\n" +
+                $"\t\t\t\"{category}\"\n" +
+                $"\t\t}};" );
         }
 
         sb.AppendLine( "\t}\n" ); // function
