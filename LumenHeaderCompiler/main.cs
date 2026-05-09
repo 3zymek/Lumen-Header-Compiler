@@ -3,10 +3,11 @@ using System.Text.Json;
 
 namespace lhc;
 
-internal record TypeProperties( string reader, string inspector );
+internal record TypeProperties( string reader, string inspector, string? droppable_inspector );
 internal record ConfigFile(
     Dictionary<string, string> paths,
     Dictionary<string, string> category_colors,
+    Dictionary<string, string> category_icons,
     List<string> prefixes,
     Dictionary<string, string> templates,
     Dictionary<string, string> defaults,
@@ -23,21 +24,25 @@ internal class Program {
             .Where( f => !f.Contains( "internal_assets" ) )
             .Where( f => !f.EndsWith( ".generated.hpp" ) );
 
+        JsonSerializerOptions options = new( ) {
+            PropertyNameCaseInsensitive = true
+        };
+
         string jsonContent = File.ReadAllText( $"{Path.Combine( AppContext.BaseDirectory, "config.json" )}" );
-        ConfigFile config = JsonSerializer.Deserialize<ConfigFile>(jsonContent) ??
+        ConfigFile config = JsonSerializer.Deserialize<ConfigFile>( jsonContent, options ) ??
            throw new Exception( $"Failed to deserialize {Path.Combine( AppContext.BaseDirectory, "config.json" )}" );
 
         Tokenizer tokenizer = new( );
         Parser parser = new( tokenizer );
 
         HeaderGenerator.Initialize( rootDir, config );
-        
+
         foreach (var file in files) {
 
             tokenizer.Tokenize( file.ToString( ) );
             Console.WriteLine( $"Parsing: {file}" );
             parser.Parse( );
-            
+
             if (parser.mComponents.Count > 0) {
                 HeaderGenerator.GenerateFile( file, parser.mComponents );
             }

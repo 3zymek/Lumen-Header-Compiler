@@ -8,6 +8,7 @@ internal struct QualifierArgs {
     public string? mMinVal;
     public string? mMaxVal;
     public string? mDragSpeed;
+    public string? mDroppable;
 
 };
 internal record FieldInfo( string mType, QualifierArgs mArgs, string mName );
@@ -117,6 +118,13 @@ internal class Parser {
                     increment( );
                     expect( TokenType.Equals );
                     args.mDragSpeed = expect( TokenType.Number ).mValue;
+
+                }
+                else if (mCurrent.mValue.ToLower() == "droppable") {
+
+                    increment( );
+                    expect( TokenType.Equals );
+                    args.mDroppable = expect( TokenType.String ).mValue;
 
                 }
                 else increment( );

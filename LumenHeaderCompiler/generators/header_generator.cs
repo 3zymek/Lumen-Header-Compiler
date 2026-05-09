@@ -126,6 +126,10 @@ internal static class HeaderGenerator {
         return mCfg!.category_colors;
     }
 
+    public static Dictionary<string, string> GetCategoryIcons() {
+        return mCfg!.category_icons;
+    }
+
     public static string GetDefault( string key ) {
         return mCfg!.defaults.TryGetValue( key, out var val )
             ? val
@@ -170,7 +174,13 @@ internal static class HeaderGenerator {
         if (mCfg!.types.TryGetValue( type, out var value )) {
             return value.inspector;
         }
-        return null;
+        throw new Exception( $"Unknown type '{type}' in config.json" );
+    }
+    public static string? TypeToDroppableInspector(string type ) {
+        if (mCfg!.types.TryGetValue( type, out var value )) {
+            return value.droppable_inspector;
+        }
+        throw new Exception( $"Unknown type '{type}' in config.json" );
     }
 
     public static string? TypeToReader( string type ) {

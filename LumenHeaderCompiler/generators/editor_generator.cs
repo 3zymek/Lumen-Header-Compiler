@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using System.Globalization;
 using System.Text;
 
@@ -29,8 +30,17 @@ internal static class EditorGenerator {
 
         foreach (var field in info.mInfo.mFields) {
 
-            string inspector = HeaderGenerator.TypeToInspector( field.mType ) ??
-               throw new Exception( $"Unknown type: '{field.mType}' in {info.mInfo.mTypeName}.{field.mName}" );
+            bool isDroppable = field.mArgs.mDroppable != null;
+
+            string inspector;
+            if (!isDroppable) {
+                inspector = HeaderGenerator.TypeToInspector( field.mType ) ??
+                    throw new Exception( $"Unknown type: '{field.mType}' in {info.mInfo.mTypeName}.{field.mName}" );
+            }
+            else {
+                inspector = HeaderGenerator.TypeToDroppableInspector( field.mType ) ?? 
+                    throw new Exception( $"Unknown type: '{field.mType}' in {info.mInfo.mTypeName}.{field.mName}" );
+            }
 
             string fieldName = HeaderGenerator.GetFieldDisplayName( field );
             var dict = new Dictionary<string, string> {
@@ -47,6 +57,8 @@ internal static class EditorGenerator {
                 dict["MaxVal"] = field.mArgs.mMaxVal ?? HeaderGenerator.GetDefault( "max_val" );
             if (inspector.Contains( "{DragSpeed}" ))
                 dict["DragSpeed"] = field.mArgs.mDragSpeed ?? HeaderGenerator.GetDefault( "drag_speed" );
+            if (inspector.Contains( "{Droppable}" ))
+                dict["Droppable"] = field.mArgs.mDroppable ?? HeaderGenerator.GetDefault( "droppable" );
 
             mSbuilder.AppendLine( $"\t\t{inspector.FormatWith( dict )};" );
         }
@@ -83,6 +95,7 @@ internal static class EditorGenerator {
         );
 
         generate_category_color_getter( mOutputBuilder );
+        generate_category_icon_getter( mOutputBuilder );
 
         File.WriteAllText( outputPath, mOutputBuilder.ToString( ) );
 
@@ -96,12 +109,16 @@ internal static class EditorGenerator {
         foreach (var (key, val) in components) {
             string displayName = HeaderGenerator.GetClassDisplayName( val.mInfo );
             string category = val.mInfo.mArgs.mCategoryName ?? HeaderGenerator.GetDefault( "category" );
-            sb.AppendLine( $"\t\t{mapName}[ HashStr( \"{HeaderGenerator.GetClassParseName( val.mInfo )}\" ) ] = {{\n " +
+            sb.AppendLine( 
+                $"\t\t{mapName}[ HashStr( \"{HeaderGenerator.GetClassParseName( val.mInfo )}\" ) ] = {{\n " +
                 $"\t\t\t{val.mEditorFnName},\n " +
                 $"\t\t\t{HeaderGenerator.GetTemplate("editor_fn_registry_add_fn").FormatWith("ClassName", val.mInfo.mTypeName)},\n" +
+                $"\t\t\t{HeaderGenerator.GetTemplate("editor_fn_registry_remove_fn").FormatWith("ClassName", val.mInfo.mTypeName)},\n" +
                 $"\t\t\t\"{displayName}\",\n" +
-                $"\t\t\t\"{category}\"\n" +
-                $"\t\t}};" );
+                $"\t\t\t\"{category}\",\n" +
+                $"\t\t\t{HeaderGenerator.GetTemplate("editor_fn_registry_typeid").FormatWith("ClassName", val.mInfo.mTypeName)},\n" +
+                $"\t\t}};" 
+                );
         }
 
         sb.AppendLine( "\t}\n" ); // function
@@ -125,7 +142,7 @@ internal static class EditorGenerator {
         string returnType = HeaderGenerator.GetTemplate( "get_category_color_return" );
         string signature = HeaderGenerator.GetTemplate( "get_category_color_signature" ).FormatWith( "VariableName", variableName );
         sb.AppendLine( $"\tinline {returnType} {signature} {{" );
-        sb.AppendLine( $"\t\tstatic std::unordered_map<HashedStr, {returnType}> colors = {{" );
+        sb.AppendLine( $"\t\tstatic std::unordered_map<HashedStr, {returnType}> sColors = {{" );
         foreach (var color in HeaderGenerator.GetCategoryColors( )) {
 
             sb.AppendLine( $"\t\t\t{{ HashStr( \"{color.Key}\" ), {{ {hex_to_vec4( color.Value )} }} }}," );
@@ -133,8 +150,32 @@ internal static class EditorGenerator {
         }
 
         sb.AppendLine( "\t\t};" );
-        sb.AppendLine( $"\t\tauto it = colors.find( HashStr({variableName}) );" );
-        sb.AppendLine( $"\t\treturn it != colors.end( ) ? it->second : {returnType}( 1, 1, 1, 1 );" );
+        sb.AppendLine( $"\t\tauto it = sColors.find( HashStr({variableName}) );" );
+        sb.AppendLine( $"\t\treturn it != sColors.end( ) ? it->second : {returnType}( 1, 1, 1, 1 );" );
+        sb.AppendLine( "\t}" );
+        sb.AppendLine( $"}} // namespace {namespaceName}" );
+
+    }
+
+    private static void generate_category_icon_getter( StringBuilder sb ) {
+
+        string namespaceName = HeaderGenerator.GetTemplate( "get_category_icon_namespace" );
+        sb.AppendLine( $"namespace {namespaceName} {{\n" );
+
+        string variableName = "category";
+        string returnType = HeaderGenerator.GetTemplate( "get_category_icon_return" );
+        string signature = HeaderGenerator.GetTemplate( "get_category_icon_signature" ).FormatWith( "VariableName", variableName );
+        sb.AppendLine( $"\tinline {returnType} {signature} {{" );
+        sb.AppendLine( $"\t\tstatic std::unordered_map<HashedStr, {returnType}> sIcons = {{" );
+        foreach( var icon in HeaderGenerator.GetCategoryIcons( )) {
+
+            sb.AppendLine( $"\t\t\t{{ HashStr( \"{icon.Key}\" ), {{ {icon.Value} }} }}," );
+
+        }
+
+        sb.AppendLine( "\t\t};" );
+        sb.AppendLine( $"\t\tauto it = sIcons.find( HashStr({variableName}) );" );
+        sb.AppendLine( $"\t\treturn it != sIcons.end( ) ? it->second : {returnType}( );" );
         sb.AppendLine( "\t}" );
         sb.AppendLine( $"}} // namespace {namespaceName}" );
 
