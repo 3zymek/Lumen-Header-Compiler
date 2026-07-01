@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.Json;
+﻿using System.Text;
 
 namespace lhc;
 
@@ -44,7 +38,7 @@ internal static class HeaderGenerator {
         GeneratePreamble( sb, sourceFile, new[] { GetPath( "scene_dep_manager_include" ) } );
         foreach (var info in components) {
 
-            string compName = GetClassParseName( info );
+            string compName = ResolveClassParseName( info );
             string parseFnSig = GetTemplate( "parse_fn_signature" );
             string parseFnName = parseFnSig.Substring( 0, parseFnSig.IndexOf( '(' ) );
 
@@ -63,17 +57,17 @@ internal static class HeaderGenerator {
             ParseGenerator.GenerateParseFn( sb, info );
             EditorGenerator.GenerateEditorFn( generatedInfo );
 
-            FGenerateNameGetterArgs args = new( );
+            GenerateNameGetterArgs args = new( );
             args.mSignature = GetTemplate( "get_parse_name_signature" );
             args.mNamespace = GetTemplate( "get_parse_name_namespace" );
             args.mReturnType = GetTemplate( "get_parse_name_return" );
-            args.mReturnVal = GetClassParseName( info );
+            args.mReturnVal = ResolveClassParseName( info );
             generate_name_getter_fn( sb, info, args );
 
             args.mSignature = GetTemplate( "get_display_name_signature" );
             args.mNamespace = GetTemplate( "get_display_name_namespace" );
             args.mReturnType = GetTemplate( "get_display_name_return" );
-            args.mReturnVal = GetClassDisplayName( info );
+            args.mReturnVal = ResolveClassDisplayName( info );
             generate_name_getter_fn( sb, info, args );
 
             args.mSignature = GetTemplate( "get_category_name_signature" );
@@ -122,6 +116,12 @@ internal static class HeaderGenerator {
             : throw new Exception( $"Missing template key '{key}' in config.json" );
     }
 
+    public static List<string> GetFunctionTemplate( string key ) {
+        return mCfg!.function_templates.TryGetValue( key, out var val )
+            ? val
+            : throw new Exception( $"Missing function template key '{key}' in config.json" );
+    }
+
     public static Dictionary<string, string> GetCategoryColors( ) {
         return mCfg!.category_colors;
     }
@@ -140,7 +140,7 @@ internal static class HeaderGenerator {
         return System.Text.RegularExpressions.Regex.Replace( name, "([A-Z])", " $1" ).Trim( );
     }
 
-    public static string GetClassParseName( ClassInfo info ) {
+    public static string ResolveClassParseName( ClassInfo info ) {
         string fallback = info.mTypeName.StartsWith( 'C' )
             ? info.mTypeName[1..] : info.mTypeName;
         fallback = System.Text.RegularExpressions.Regex.Replace( fallback, "([A-Z])", "_$1" )
@@ -148,13 +148,13 @@ internal static class HeaderGenerator {
         return info.mArgs.mParseName ?? fallback;
     }
 
-    public static string GetClassDisplayName( ClassInfo info ) {
+    public static string ResolveClassDisplayName( ClassInfo info ) {
         string fallback = info.mTypeName.StartsWith( 'C' )
             ? info.mTypeName[1..] : info.mTypeName;
         return info.mArgs.mDisplayName ?? camel_case_to_display( fallback );
     }
 
-    public static string GetFieldDisplayName( FieldInfo info ) {
+    public static string ResolveFieldDisplayName( FieldInfo info ) {
         string name = info.mName;
         if (name.Length > 1 && mCfg!.prefixes.Contains( name[0].ToString( ) ) && char.IsUpper( name[1] )) {
             name = name.Substring( 1 );
@@ -162,7 +162,7 @@ internal static class HeaderGenerator {
         return info.mArgs.mDisplayName ?? camel_case_to_display( name );
     }
 
-    public static string GetFieldName( FieldInfo info ) {
+    public static string ResolveFieldName( FieldInfo info ) {
         string name = info.mName;
         if (name.Length > 1 && mCfg!.prefixes.Contains( name[0].ToString( ) ) && char.IsUpper( name[1] )) {
             name = name.Substring( 1 );
@@ -212,7 +212,7 @@ internal static class HeaderGenerator {
 
     }
 
-    private struct FGenerateNameGetterArgs {
+    private struct GenerateNameGetterArgs {
 
         public string mNamespace;
         public string mReturnType;
@@ -221,7 +221,7 @@ internal static class HeaderGenerator {
 
     }
 
-    private static void generate_name_getter_fn( StringBuilder sb, ClassInfo info, FGenerateNameGetterArgs args ) {
+    private static void generate_name_getter_fn( StringBuilder sb, ClassInfo info, GenerateNameGetterArgs args ) {
 
         sb.AppendLine( $"namespace {args.mNamespace}" + " {\n" );
         sb.AppendLine( "\ttemplate<>" );

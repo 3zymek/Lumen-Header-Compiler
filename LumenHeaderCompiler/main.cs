@@ -9,6 +9,7 @@ internal record ConfigFile(
     Dictionary<string, string> category_colors,
     Dictionary<string, string> category_icons,
     List<string> prefixes,
+    Dictionary<string, List<string>> function_templates,
     Dictionary<string, string> templates,
     Dictionary<string, string> defaults,
     Dictionary<string, TypeProperties> types

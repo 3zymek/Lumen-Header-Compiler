@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace lhc;
@@ -10,46 +11,66 @@ internal static class ParseGenerator {
 
     public static void GenerateParseFn( StringBuilder sb, ClassInfo info ) {
 
-        string parseFnNamespace = HeaderGenerator.GetTemplate( "parse_fn_namespace" );
+        string varName = HeaderGenerator.GetTemplate( "parse_fn_var" );
+        string parseFn = string.Join( '\n', HeaderGenerator.GetFunctionTemplate( "parse_function" ) ).FormatWith( new( ) {
+            { "ClassName", info.mTypeName },
+            { "Var", varName }
+        } );
 
-        sb.AppendLine( $"namespace {parseFnNamespace}" + " {\n" );
+        int index = parseFn.IndexOf( "{Fields}" );
 
-        string className = HeaderGenerator.GetClassParseName( info );
-        string classVarName = HeaderGenerator.GetTemplate( "parse_fn_var_name" );
-        string parseFnSig = HeaderGenerator.GetTemplate( "parse_fn_signature" ).FormatWith( "ClassName", info.mTypeName );
+        if (index != -1) {
 
-        sb.AppendLine( $"\tinline void {parseFnSig}" + " {\n" );
-        sb.AppendLine( $"\t\t{HeaderGenerator.GetTemplate( "parse_fn_body_open" )}" );
-        sb.AppendLine( $"\t\t{info.mTypeName} {classVarName};" );
-        sb.AppendLine( $"\t\twhile( {HeaderGenerator.GetTemplate( "parse_fn_while_expr" )} )" + " {\n" );
-        sb.AppendLine( $"\t\t\tif( {HeaderGenerator.GetTemplate( "parse_fn_token_check" )} )" + " {\n" );
-        for (int i = 0; i < info.mFields.Count; i++) {
+            string alignment = new( "" );
+            for (int i = index - 1; i >= 0; i--) {
 
-            FieldInfo field = info.mFields[i];
-            string reader = HeaderGenerator.TypeToReader( field.mType ) ??
-                throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
+                char c = parseFn[i];
 
-            string keyword = i == 0 ? "if" : "else if";
-            string fieldName = HeaderGenerator.GetFieldName( field );
-            string statement = $"{keyword}( {HeaderGenerator.GetTemplate( "parse_fn_while_statement" ).FormatWith( "Value", fieldName )}";
+                if (c == '\n' || c == '\r')
+                    break;
 
-            sb.AppendLine( $"\t\t\t\t{statement} )" );
-            string fieldFormatted = HeaderGenerator.GetTemplate( "parse_fn_field" ).FormatWith( new Dictionary<string, string> {
-                { "Var", classVarName },
-                { "FieldName", field.mName },
-                { "Reader", reader }
-            } );
+                if (char.IsWhiteSpace( c )) {
+                    alignment = c + alignment;
+                }
+                else break;
 
-            sb.AppendLine( $"\t\t\t\t\t{fieldFormatted}" );
+            }
+
+
+            string preFields = parseFn.Substring( 0, index );
+            string postFields = parseFn.Substring( index + "{Fields}".Length );
+
+            StringBuilder sbStatements = new( );
+            for (int i = 0; i < info.mFields.Count; i++) {
+
+                FieldInfo field = info.mFields[i];
+                string reader = HeaderGenerator.TypeToReader( field.mType ) ??
+                    throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
+
+                List<string> template = i == 0 ? HeaderGenerator.GetFunctionTemplate( "parse_fn_field_first" ) : HeaderGenerator.GetFunctionTemplate( "parse_fn_field_next" );
+                string mergedTemplate = string.Join( '\n', template );
+
+                string formattedBlock = mergedTemplate.FormatWith( new( )
+                    {
+                        { "FieldName", field.mName },
+                        { "Var", varName },
+                        { "Reader", reader },
+                    }
+                );
+
+                if (i > 0)
+                    sbStatements.Append( alignment );
+
+                formattedBlock = formattedBlock.Replace( "\n", "\n" + alignment );
+                sbStatements.AppendLine( formattedBlock );
+
+            }
+
+            string result = preFields + sbStatements.ToString( ) + postFields;
+            sb.AppendLine( result );
 
         }
-
-        sb.AppendLine( "\t\t\t}" );
-        sb.AppendLine( "\t\t\ti++;" );
-        sb.AppendLine( "\t\t}\n" );
-        sb.AppendLine( $"\t\t{ HeaderGenerator.GetTemplate( "parse_fn_add" ).FormatWith( "Var", classVarName ) }\n" );
-        sb.AppendLine( "\t}\n" ); // function
-        sb.AppendLine( "} " + $"// namespace { parseFnNamespace }\n" ); // namespace
+        else throw new Exception( $"Couldn't find Fields parameter in parse_function" );
 
     }
 
@@ -59,7 +80,7 @@ internal static class ParseGenerator {
         string sceneDepMgrInclude = HeaderGenerator.GetPath( "scene_dep_manager_include" );
         string parseFnNamespace = HeaderGenerator.GetTemplate( "parse_fn_namespace" );
 
-        if (!File.Exists( sceneDepMgrPath )) throw new Exception( "Scene dependency manager path is invalid" );
+        if (!File.Exists( sceneDepMgrPath )) throw new Exception( $"Scene dependency manager path is invalid: {sceneDepMgrPath}" );
 
         StringBuilder sb = new( );
         var relativeIncludes = components.Values
@@ -74,7 +95,7 @@ internal static class ParseGenerator {
         sb.AppendLine( $"\tinline void {HeaderGenerator.GetTemplate( "parse_fn_registry" ).FormatWith( "Param", mapName )}" + " {" );
 
         foreach (var (key, val) in components) {
-            sb.AppendLine( $"\t\t{mapName}[ HashStr(\"{HeaderGenerator.GetClassParseName( val.mInfo )}\") ] = {val.mParseFnName};" );
+            sb.AppendLine( $"\t\t{mapName}[ HashString(\"{HeaderGenerator.ResolveClassParseName( val.mInfo )}\") ] = {val.mParseFnName};" );
         }
 
         sb.AppendLine( "\t}\n" ); // function

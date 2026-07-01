@@ -42,7 +42,7 @@ internal static class EditorGenerator {
                     throw new Exception( $"Unknown type: '{field.mType}' in {info.mInfo.mTypeName}.{field.mName}" );
             }
 
-            string fieldName = HeaderGenerator.GetFieldDisplayName( field );
+            string fieldName = HeaderGenerator.ResolveFieldDisplayName( field );
             var dict = new Dictionary<string, string> {
                 { "DisplayName", fieldName },
                 { "FieldName", field.mName },
@@ -107,10 +107,10 @@ internal static class EditorGenerator {
         sb.AppendLine( $"\tinline void {HeaderGenerator.GetTemplate( "editor_fn_registry" ).FormatWith( "Param", mapName )}" + " {" );
 
         foreach (var (key, val) in components) {
-            string displayName = HeaderGenerator.GetClassDisplayName( val.mInfo );
+            string displayName = HeaderGenerator.ResolveClassDisplayName( val.mInfo );
             string category = val.mInfo.mArgs.mCategoryName ?? HeaderGenerator.GetDefault( "category" );
             sb.AppendLine( 
-                $"\t\t{mapName}[ HashStr( \"{HeaderGenerator.GetClassParseName( val.mInfo )}\" ) ] = {{\n " +
+                $"\t\t{mapName}[ HashString( \"{HeaderGenerator.ResolveClassParseName( val.mInfo )}\" ) ] = {{\n " +
                 $"\t\t\t{val.mEditorFnName},\n " +
                 $"\t\t\t{HeaderGenerator.GetTemplate("editor_fn_registry_add_fn").FormatWith("ClassName", val.mInfo.mTypeName)},\n" +
                 $"\t\t\t{HeaderGenerator.GetTemplate("editor_fn_registry_remove_fn").FormatWith("ClassName", val.mInfo.mTypeName)},\n" +
@@ -142,15 +142,15 @@ internal static class EditorGenerator {
         string returnType = HeaderGenerator.GetTemplate( "get_category_color_return" );
         string signature = HeaderGenerator.GetTemplate( "get_category_color_signature" ).FormatWith( "VariableName", variableName );
         sb.AppendLine( $"\tinline {returnType} {signature} {{" );
-        sb.AppendLine( $"\t\tstatic std::unordered_map<HashedStr, {returnType}> sColors = {{" );
+        sb.AppendLine( $"\t\tstatic std::unordered_map<HashedString, {returnType}> sColors = {{" );
         foreach (var color in HeaderGenerator.GetCategoryColors( )) {
 
-            sb.AppendLine( $"\t\t\t{{ HashStr( \"{color.Key}\" ), {{ {hex_to_vec4( color.Value )} }} }}," );
+            sb.AppendLine( $"\t\t\t{{ HashString( \"{color.Key}\" ), {{ {hex_to_vec4( color.Value )} }} }}," );
 
         }
 
         sb.AppendLine( "\t\t};" );
-        sb.AppendLine( $"\t\tauto it = sColors.find( HashStr({variableName}) );" );
+        sb.AppendLine( $"\t\tauto it = sColors.find( HashString({variableName}) );" );
         sb.AppendLine( $"\t\treturn it != sColors.end( ) ? it->second : {returnType}( 1, 1, 1, 1 );" );
         sb.AppendLine( "\t}" );
         sb.AppendLine( $"}} // namespace {namespaceName}" );
@@ -166,15 +166,15 @@ internal static class EditorGenerator {
         string returnType = HeaderGenerator.GetTemplate( "get_category_icon_return" );
         string signature = HeaderGenerator.GetTemplate( "get_category_icon_signature" ).FormatWith( "VariableName", variableName );
         sb.AppendLine( $"\tinline {returnType} {signature} {{" );
-        sb.AppendLine( $"\t\tstatic std::unordered_map<HashedStr, {returnType}> sIcons = {{" );
+        sb.AppendLine( $"\t\tstatic std::unordered_map<HashedString, {returnType}> sIcons = {{" );
         foreach( var icon in HeaderGenerator.GetCategoryIcons( )) {
 
-            sb.AppendLine( $"\t\t\t{{ HashStr( \"{icon.Key}\" ), {{ {icon.Value} }} }}," );
+            sb.AppendLine( $"\t\t\t{{ HashString( \"{icon.Key}\" ), {{ {icon.Value} }} }}," );
 
         }
 
         sb.AppendLine( "\t\t};" );
-        sb.AppendLine( $"\t\tauto it = sIcons.find( HashStr({variableName}) );" );
+        sb.AppendLine( $"\t\tauto it = sIcons.find( HashString({variableName}) );" );
         sb.AppendLine( $"\t\treturn it != sIcons.end( ) ? it->second : {returnType}( );" );
         sb.AppendLine( "\t}" );
         sb.AppendLine( $"}} // namespace {namespaceName}" );
