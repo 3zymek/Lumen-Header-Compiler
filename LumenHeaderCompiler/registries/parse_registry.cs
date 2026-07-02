@@ -7,12 +7,18 @@ using System.Text;
 
 namespace lhc;
 
-internal static class ParseGenerator {
+internal class ParseRegistry : IRegistry {
 
-    public static void GenerateParseFn( StringBuilder sb, ClassInfo info ) {
+    private readonly ConfigFile mCfg;
 
-        string varName = HeaderGenerator.GetTemplate( "parse_fn_var" );
-        string parseFn = string.Join( '\n', HeaderGenerator.GetFunctionTemplate( "parse_function" ) ).FormatWith( new( ) {
+    public ParseRegistry( ConfigFile cfg ) {
+        mCfg = cfg;
+    }
+
+    public void GenerateParseFn( StringBuilder sb, ClassInfo info ) {
+
+        string varName = mCfg.GetTemplate( "parse_fn_var" );
+        string parseFn = string.Join( '\n', mCfg.GetFunctionTemplate( "parse_fn" ) ).FormatWith( new( ) {
             { "ClassName", info.mTypeName },
             { "Var", varName }
         } );
@@ -44,10 +50,10 @@ internal static class ParseGenerator {
             for (int i = 0; i < info.mFields.Count; i++) {
 
                 FieldInfo field = info.mFields[i];
-                string reader = HeaderGenerator.TypeToReader( field.mType ) ??
+                string reader = mCfg.TypeToReader( field.mType ) ??
                     throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
 
-                List<string> template = i == 0 ? HeaderGenerator.GetFunctionTemplate( "parse_fn_field_first" ) : HeaderGenerator.GetFunctionTemplate( "parse_fn_field_next" );
+                List<string> template = i == 0 ? mCfg.GetFunctionTemplate( "parse_fn_field_first" ) : mCfg.GetFunctionTemplate( "parse_fn_field_next" );
                 string mergedTemplate = string.Join( '\n', template );
 
                 string formattedBlock = mergedTemplate.FormatWith( new( )
@@ -74,36 +80,38 @@ internal static class ParseGenerator {
 
     }
 
-    public static void Finalize( string root, Dictionary<string, ClassGeneratedInfo> components ) {
+    public void Finalize( string rootDir, Dictionary<string, ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
 
-        string sceneDepMgrPath = Path.Combine( root, HeaderGenerator.GetPath( "scene_dep_manager_path" ) );
-        string sceneDepMgrInclude = HeaderGenerator.GetPath( "scene_dep_manager_include" );
-        string parseFnNamespace = HeaderGenerator.GetTemplate( "parse_fn_namespace" );
+        string filePath = Path.Combine( rootDir, outProps.output_path );
+        string baseInclude = outProps.base_include;
+        string functionNamespace = outProps.function_namespace;
 
-        if (!File.Exists( sceneDepMgrPath )) throw new Exception( $"Scene dependency manager path is invalid: {sceneDepMgrPath}" );
+        if (!File.Exists( filePath )) throw new Exception( $"Parse generator finalization sequence file not found: {filePath}" );
 
         StringBuilder sb = new( );
-        var relativeIncludes = components.Values
+        var relativeIncludes = classInfos.Values
             .Select( v => v.mGeneratedFilepath )
             .Distinct( )
-            .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( sceneDepMgrPath )!, absPath ) );
+            .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( filePath )!, absPath ) );
 
-        HeaderGenerator.GeneratePreamble( sb, null, new[] { sceneDepMgrInclude }.Concat( relativeIncludes ) );
+        LhcPipeline.GeneratePreamble( sb, null, new[] { baseInclude }.Concat( relativeIncludes ) );
+
+        //string registerFn = LhcPipeline.
 
         string mapName = "map";
-        sb.AppendLine( $"namespace {parseFnNamespace}" + " {\n" );
-        sb.AppendLine( $"\tinline void {HeaderGenerator.GetTemplate( "parse_fn_registry" ).FormatWith( "Param", mapName )}" + " {" );
+        sb.AppendLine( $"namespace {functionNamespace}" + " {\n" );
+        sb.AppendLine( $"\tinline void {mCfg.GetTemplate( "parse_fn_registry" ).FormatWith( "Param", mapName )}" + " {" );
 
-        foreach (var (key, val) in components) {
-            sb.AppendLine( $"\t\t{mapName}[ HashString(\"{HeaderGenerator.ResolveClassParseName( val.mInfo )}\") ] = {val.mParseFnName};" );
+        foreach (var (key, val) in classInfos) {
+            sb.AppendLine( $"\t\t{mapName}[ HashString(\"{ val.mInfo.ResolveParseName() }\") ] = {val.mParseFnName};" );
         }
 
         sb.AppendLine( "\t}\n" ); // function
-        sb.AppendLine( "} " + $"// namespace {parseFnNamespace}\n" ); // namespace
+        sb.AppendLine( "} " + $"// namespace {functionNamespace}\n" ); // namespace
 
         string outputPath = Path.Combine(
-            Path.GetDirectoryName( sceneDepMgrPath )!,
-            Path.GetFileNameWithoutExtension( sceneDepMgrPath ) + ".generated.hpp"
+            Path.GetDirectoryName( baseInclude )!,
+            Path.GetFileNameWithoutExtension( baseInclude ) + ".generated.hpp"
         );
 
         File.WriteAllText( outputPath, sb.ToString( ) );

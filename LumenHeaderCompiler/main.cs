@@ -1,10 +1,21 @@
-﻿
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace lhc;
 
-internal record TypeProperties( string reader, string inspector, string? droppable_inspector );
+internal record TypeProperties( 
+    string reader, 
+    List<string> inspector, 
+    List<string>? droppable_inspector
+    );
+internal record OutputProperties(
+    string generator_type,
+    string output_path,
+    string base_include,
+    string template_function,
+    string function_namespace
+    );
 internal record ConfigFile(
+    List<OutputProperties> outputs,
     Dictionary<string, string> paths,
     Dictionary<string, string> category_colors,
     Dictionary<string, string> category_icons,
@@ -36,7 +47,7 @@ internal class Program {
         Tokenizer tokenizer = new( );
         Parser parser = new( tokenizer );
 
-        HeaderGenerator.Initialize( rootDir, config );
+        LhcPipeline.Initialize( rootDir, config );
 
         foreach (var file in files) {
 
@@ -45,12 +56,12 @@ internal class Program {
             parser.Parse( );
 
             if (parser.mComponents.Count > 0) {
-                HeaderGenerator.GenerateFile( file, parser.mComponents );
+                LhcPipeline.GenerateFile( file, parser.mComponents );
             }
 
         }
 
-        HeaderGenerator.Finalize( );
+        LhcPipeline.Finalize( );
 
     }
 
