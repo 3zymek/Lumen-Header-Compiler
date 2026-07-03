@@ -8,7 +8,7 @@ internal record TypeProperties(
     List<string>? droppable_inspector
     );
 internal record OutputProperties(
-    string generator_type,
+    string registry_type,
     string output_path,
     string base_include,
     string template_function,
@@ -47,7 +47,7 @@ internal class Program {
         Tokenizer tokenizer = new( );
         Parser parser = new( tokenizer );
 
-        LhcPipeline.Initialize( rootDir, config );
+        LhcPipeline lhcPipeline = new( rootDir, config );
 
         foreach (var file in files) {
 
@@ -56,12 +56,12 @@ internal class Program {
             parser.Parse( );
 
             if (parser.mComponents.Count > 0) {
-                LhcPipeline.GenerateFile( file, parser.mComponents );
+                lhcPipeline.GenerateFile( file, parser.mComponents );
             }
 
         }
 
-        LhcPipeline.Finalize( );
+        lhcPipeline.Finalize( );
 
     }
 

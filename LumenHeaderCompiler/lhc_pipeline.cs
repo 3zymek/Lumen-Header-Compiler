@@ -13,25 +13,25 @@ internal record ClassGeneratedInfo(
 
 internal class LhcPipeline {
 
-    private ConfigFile? mCfg;
-    private string? mRootDir;
-    private Dictionary<string, ClassGeneratedInfo> mComponents = new( );
+    private readonly ConfigFile mCfg;
+    private readonly string mRootDir;
 
-    readonly Dictionary<string, IRegistry> mRegistries = new( );
+    private Dictionary<string, ClassGeneratedInfo> mClassInfos = new( );
+    private readonly Dictionary<string, IRegistry> mRegistries = new( );
 
-    public void Initialize( string rootDir, ConfigFile config ) {
+    public LhcPipeline( string rootDir, ConfigFile cfg ) {
 
-        mCfg = config;
+        mCfg = cfg;
         mRootDir = rootDir;
 
         mRegistries.Add( "parse_registry", new ParseRegistry( mCfg ) );
+        mRegistries.Add( "editor_registry", new EditorRegistry( mCfg ) );
 
     }
 
     public void GenerateFile( string sourceFile, List<ClassInfo> classInfos ) {
 
         if (!File.Exists( sourceFile )) { throw new Exception( $"File {sourceFile} doesn't exist" ); }
-        if (mCfg == null) throw new Exception( "Header generator not initialized" );
 
         StringBuilder sb = new( );
         string generatedPath = Path.Combine(
@@ -42,19 +42,17 @@ internal class LhcPipeline {
         GeneratePreamble( sb, sourceFile, new[] { mCfg.GetPath( "scene_dep_manager_include" ) } );
         foreach (var info in classInfos) {
 
-            string compName = info.ResolveParseName();
-            string parseFnSig = mCfg.GetTemplate( "parse_fn_signature" );
-            string parseFnName = parseFnSig.Substring( 0, parseFnSig.IndexOf( '(' ) );
+            string compName = info.ResolveParseName( );
+            string parseFnName = mCfg.GetTemplate( "parse_fn_name" );
+            string editorFnName = mCfg.GetTemplate( "editor_fn_name" );
+            string serializeFnName = mCfg.GetTemplate( "serialize_fn_name" );
 
-            string editorFnSig = mCfg.GetTemplate( "editor_fn_signature" );
-            string editorFnName = editorFnSig.Substring( 0, editorFnSig.IndexOf( '(' ) );
-
-            var generatedInfo = mComponents[compName] = new ClassGeneratedInfo(
+            var generatedInfo = mClassInfos[compName] = new ClassGeneratedInfo(
                 mInfo: info,
                 mGeneratedFilepath: generatedPath,
                 mOriginalFilepath: sourceFile,
                 mParseFnName: parseFnName.FormatWith( "ClassName", info.mTypeName ),
-                mSerializeFnName: "TO IMPLEMENT",
+                mSerializeFnName: serializeFnName.FormatWith( "ClassName", info.mTypeName ),
                 mEditorFnName: editorFnName.FormatWith( "ClassName", info.mTypeName )
                 );
 
@@ -65,13 +63,13 @@ internal class LhcPipeline {
             args.mSignature = mCfg.GetTemplate( "get_parse_name_signature" );
             args.mNamespace = mCfg.GetTemplate( "get_parse_name_namespace" );
             args.mReturnType = mCfg.GetTemplate( "get_parse_name_return" );
-            args.mReturnVal = info.ResolveParseName();
+            args.mReturnVal = info.ResolveParseName( );
             generate_name_getter_fn( sb, info, args );
 
             args.mSignature = mCfg.GetTemplate( "get_display_name_signature" );
             args.mNamespace = mCfg.GetTemplate( "get_display_name_namespace" );
             args.mReturnType = mCfg.GetTemplate( "get_display_name_return" );
-            args.mReturnVal = info.ResolveDisplayName();
+            args.mReturnVal = info.ResolveDisplayName( );
             generate_name_getter_fn( sb, info, args );
 
             args.mSignature = mCfg.GetTemplate( "get_category_name_signature" );
@@ -88,22 +86,15 @@ internal class LhcPipeline {
 
     public void Finalize( ) {
 
-        if (mCfg == null) throw new Exception( "Header generator not initialized" );
-
         StringBuilder sb = new( );
 
-        foreach (var output in mCfg!.outputs) {
+        foreach (var output in mCfg.outputs) {
 
-            switch (output.generator_type) {
-
-                case "parse_registry":
-                    //ParseRegistry.Finalize( mRootDir!, mComponents, output );
-                    break;
-
-                case "editor_registry":
-                    //EditorRegistry.Finalize( mRootDir!, mComponents, output );
-                    break;
-
+            if (mRegistries.TryGetValue( output.registry_type, out var registry )) {
+                registry.Finalize( mRootDir, mClassInfos, output );
+            }
+            else {
+                throw new Exception( $"Unsupported registry type: '{output.registry_type}'" );
             }
 
         }
@@ -138,6 +129,12 @@ internal class LhcPipeline {
         public string mReturnType;
         public string mSignature;
         public string mReturnVal;
+
+    }
+
+    private ClassGeneratedInfo register_class_metadata( ClassInfo info, string sourceFile, string generatedPath ) {
+
+
 
     }
 

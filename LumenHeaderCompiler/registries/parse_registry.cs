@@ -94,7 +94,7 @@ internal class ParseRegistry : IRegistry {
             .Distinct( )
             .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( filePath )!, absPath ) );
 
-        LhcPipeline.GeneratePreamble( sb, null, new[] { baseInclude }.Concat( relativeIncludes ) );
+        //LhcPipeline.GeneratePreamble( sb, null, new[] { baseInclude }.Concat( relativeIncludes ) );
 
         //string registerFn = LhcPipeline.
 
