@@ -9,18 +9,16 @@ internal record TypeProperties(
     );
 internal record OutputProperties(
     string registry_type,
-    string output_path,
-    string base_include,
+    string base_filepath,
     string template_function,
     string function_namespace
     );
 internal record ConfigFile(
     List<OutputProperties> outputs,
-    Dictionary<string, string> paths,
     Dictionary<string, string> category_colors,
     Dictionary<string, string> category_icons,
     List<string> prefixes,
-    Dictionary<string, List<string>> function_templates,
+    Dictionary<string, List<string>> blueprints,
     Dictionary<string, string> templates,
     Dictionary<string, string> defaults,
     Dictionary<string, TypeProperties> types

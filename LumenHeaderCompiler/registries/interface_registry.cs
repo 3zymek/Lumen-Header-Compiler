@@ -5,6 +5,6 @@ using System.Text;
 namespace lhc;
 
 internal interface IRegistry {
-    void Finalize( string rootDir, Dictionary<string, ClassGeneratedInfo> classInfos, OutputProperties outProps );
-
+    void Finalize( string rootDir, List<ClassGeneratedInfo> classInfos, OutputProperties outProps );
+    void GenerateFile( string sourceFile, ClassInfo info );
 }

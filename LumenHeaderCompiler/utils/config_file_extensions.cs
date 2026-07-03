@@ -1,20 +1,17 @@
+using System.Text;
+
 namespace lhc;
 
 internal static class ConfigFileExtensions {
 
-    public static string GetPath( this ConfigFile cfg, string key ) {
-        return cfg.paths.TryGetValue( key, out var val )
-             ? val
-             : throw new Exception( $"Missing path key '{key}' in config.json" );
-    }
     public static string GetTemplate( this ConfigFile cfg, string key ) {
         return cfg.templates.TryGetValue( key, out var val )
             ? val
             : throw new Exception( $"Missing template key '{key}' in config.json" );
     }
 
-    public static List<string> GetFunctionTemplate( this ConfigFile cfg, string key ) {
-        return cfg.function_templates.TryGetValue( key, out var val )
+    public static List<string> GetBlueprint( this ConfigFile cfg, string key ) {
+        return cfg.blueprints.TryGetValue( key, out var val )
              ? val
              : throw new Exception( $"Missing function template key '{key}' in config.json" );
     }
@@ -49,4 +46,26 @@ internal static class ConfigFileExtensions {
         }
         return null;
     }
+
+    public static string ResolveFilePreamble( this ConfigFile cfg, string? sourceFile, IEnumerable<string>? extraIncludes = null ) {
+
+        List<string> preamble = cfg.GetBlueprint( "file_preamble" );
+
+        string sourceName = sourceFile != null ? Path.GetFileName( sourceFile ) : "";
+        string formattedPreamble = string.Join( '\n', preamble ).FormatWith( "Source", sourceName );
+
+        StringBuilder sb = new( );
+        sb.AppendLine( formattedPreamble );
+
+        if (sourceFile != null) sb.AppendLine( $"#include \"{Path.GetFileName(sourceFile)}\"" );
+        if(extraIncludes != null) {
+            foreach( var include in extraIncludes) {
+                sb.AppendLine( $"#include \"{include.Replace( '\\', '/' )}\"" );
+            }
+        }
+
+        return sb.ToString( );
+
+    }
+
 }

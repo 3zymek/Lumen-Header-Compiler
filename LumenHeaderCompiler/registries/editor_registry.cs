@@ -18,14 +18,14 @@ internal class EditorRegistry : IRegistry {
         mCfg = cfg;
     }
 
-    public void GenerateEditorFn( ClassGeneratedInfo info ) {
+    public void GenerateFile( string sourceFile, ClassInfo info ) {
 
-        string signature = mCfg.GetTemplate( "editor_fn_signature" ).FormatWith( "ClassName", info.mInfo.mTypeName );
+        string signature = mCfg.GetTemplate( "editor_fn_signature" ).FormatWith( "ClassName", info.mTypeName );
         mSbuilder.AppendLine( $"\tinline void {signature}" + " {\n" );
         string variableName = mCfg.GetTemplate( "editor_fn_comp_name" );
         string getter = mCfg.GetTemplate( "editor_fn_comp_getter" ).FormatWith( new Dictionary<string, string> {
             { "Var", variableName },
-            { "ClassName", info.mInfo.mTypeName }
+            { "ClassName", info.mTypeName }
         } );
 
         mSbuilder.AppendLine( $"\t\t{getter}" );
@@ -33,18 +33,18 @@ internal class EditorRegistry : IRegistry {
         string check = mCfg.GetTemplate( "editor_fn_getter_check" ).FormatWith( "Var", variableName );
         mSbuilder.AppendLine( $"\t\t{check}" );
 
-        foreach (var field in info.mInfo.mFields) {
+        foreach (var field in info.mFields) {
 
             bool isDroppable = field.mArgs.mDroppable != null;
 
             string inspector;
             if (!isDroppable) {
                 inspector = mCfg.TypeToInspector( field.mType ) ??
-                    throw new Exception( $"Unknown type: '{field.mType}' in {info.mInfo.mTypeName}.{field.mName}" );
+                    throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
             }
             else {
                 inspector = mCfg.TypeToDroppableInspector( field.mType ) ?? 
-                    throw new Exception( $"Unknown type: '{field.mType}' in {info.mInfo.mTypeName}.{field.mName}" );
+                    throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
             }
 
             string fieldName = field.ResolveDisplayName(mCfg);
@@ -69,23 +69,24 @@ internal class EditorRegistry : IRegistry {
         }
 
         mSbuilder.AppendLine( "\n\t}\n" );
-        mIncludes.Add( info.mOriginalFilepath );
+        //mIncludes.Add( info.mOriginalFilepath );
     }
 
-    public void Finalize( string root, Dictionary<string, ClassGeneratedInfo> components, OutputProperties outProps ) {
+    public void Finalize( string root, List<ClassGeneratedInfo> components, OutputProperties outProps ) {
 
-        string editorDepMgrPath = Path.Combine( root, LhcPipeline.GetPath( "editor_dep_manager_path" ) );
-        string editorDepMgrInclude = LhcPipeline.GetPath( "editor_dep_manager_include" );
+        string editorDepMgrPath = new( "" ); //Path.Combine( root, mCfg.GetPath( "editor_dep_manager_path" ) );
+        string editorDepMgrInclude = new( "" ); //mCfg.GetPath( "editor_dep_manager_include" );
 
-        string editorFnNamespace = LhcPipeline.GetTemplate( "editor_fn_namespace" );
+        string editorFnNamespace = mCfg.GetTemplate( "editor_fn_namespace" );
         if (!File.Exists( editorDepMgrPath )) throw new Exception( $"Path to editor dependency manager is invalid: {editorDepMgrPath}" );
 
+        /*
         var relativeIncludes = components.Values
             .Select( v => v.mGeneratedFilepath )
             .Distinct( )
             .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( editorDepMgrPath )!, absPath ) );
 
-        LhcPipeline.GeneratePreamble( mOutputBuilder, null, new[] { editorDepMgrInclude }.Concat( relativeIncludes ) );
+        //LhcPipeline.GeneratePreamble( mOutputBuilder, null, new[] { editorDepMgrInclude }.Concat( relativeIncludes ) );
 
         mOutputBuilder.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
 
@@ -101,8 +102,9 @@ internal class EditorRegistry : IRegistry {
 
         generate_category_color_getter( mOutputBuilder );
         generate_category_icon_getter( mOutputBuilder );
-
+       
         File.WriteAllText( outputPath, mOutputBuilder.ToString( ) );
+       */
 
     }
 
