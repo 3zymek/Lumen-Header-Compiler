@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace lhc;
@@ -10,101 +11,151 @@ namespace lhc;
 internal class EditorRegistry : IRegistry {
 
     private readonly ConfigFile mCfg;
-    private StringBuilder mSbuilder = new( );
-    private StringBuilder mOutputBuilder = new( );
-    private HashSet<string> mIncludes = new( );
+    private List<ClassInfo> mForwardDeclares;
+    private List<string> mExtraIncludes;
+
 
     public EditorRegistry( ConfigFile cfg ) {
+
         mCfg = cfg;
+    
     }
 
-    public void GenerateFile( string sourceFile, ClassInfo info ) {
+    public void HandleFile( string sourceFile, ClassInfo info ) {
 
-        string signature = mCfg.GetTemplate( "editor_fn_signature" ).FormatWith( "ClassName", info.mTypeName );
-        mSbuilder.AppendLine( $"\tinline void {signature}" + " {\n" );
-        string variableName = mCfg.GetTemplate( "editor_fn_comp_name" );
-        string getter = mCfg.GetTemplate( "editor_fn_comp_getter" ).FormatWith( new Dictionary<string, string> {
-            { "Var", variableName },
-            { "ClassName", info.mTypeName }
+        StringBuilder sb = new( );
+        string preamble = mCfg.ResolveFilePreamble( sourceFile );
+        sb.AppendLine( preamble );
+        
+        string editorFn = string.Join( '\n', mCfg.GetBlueprint( "editor_fn" ) );
+        editorFn = editorFn.FormatWith( new( )
+        {
+            { "ClassName", info.mTypeName },
+            { "Var", mCfg.GetTemplate("editor_fn_var") }
         } );
 
-        mSbuilder.AppendLine( $"\t\t{getter}" );
+        int index = editorFn.IndexOf( "{Inspector}" );
 
-        string check = mCfg.GetTemplate( "editor_fn_getter_check" ).FormatWith( "Var", variableName );
-        mSbuilder.AppendLine( $"\t\t{check}" );
+        if (index == -1) throw new ArgumentNullException( "Couldn't find Inspector parameter in editor_function" );
 
-        foreach (var field in info.mFields) {
+        string alignment = new("");
+        for(int i = index - 1; i >= 0; i--) {
+
+            char c = editorFn[i];
+
+            if (c == '\n' || c == '\r')
+                break;
+
+            if (char.IsWhiteSpace( c ))
+                alignment = c + alignment;
+            else break;
+
+        }
+
+        string preInspector = editorFn.Substring( 0, index );
+        string postInspector = editorFn.Substring( index + "{Inspector}".Length );
+        
+        foreach ( var field in info.mFields ) {
 
             bool isDroppable = field.mArgs.mDroppable != null;
 
-            string inspector;
-            if (!isDroppable) {
-                inspector = mCfg.TypeToInspector( field.mType ) ??
-                    throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
-            }
-            else {
-                inspector = mCfg.TypeToDroppableInspector( field.mType ) ?? 
-                    throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
-            }
+            string? inspector;
+            if (!isDroppable)
+                inspector = mCfg.TypeToInspector( field.mType );
+            else
+                inspector = mCfg.TypeToDroppableInspector( field.mType );
 
-            string fieldName = field.ResolveDisplayName(mCfg);
-            var dict = new Dictionary<string, string> {
-                { "DisplayName", fieldName },
-                { "FieldName", field.mName },
+            if(inspector == null)
+                throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
+
+
+            /*
+            string signature = mCfg.GetTemplate( "editor_fn_signature" ).FormatWith( "ClassName", info.mTypeName );
+            mSbuilder.AppendLine( $"\tinline void {signature}" + " {\n" );
+            string variableName = mCfg.GetTemplate( "editor_fn_comp_name" );
+            string getter = mCfg.GetTemplate( "editor_fn_comp_getter" ).FormatWith( new Dictionary<string, string> {
                 { "Var", variableName },
-            };
+                { "ClassName", info.mTypeName }
+            } );
 
-            if (inspector.Contains( "{Speed}" ))
-                dict["Speed"] = field.mArgs.mDragSpeed ?? mCfg.GetDefault( "drag_speed" );
-            if (inspector.Contains( "{MinVal}" ))
-                dict["MinVal"] = field.mArgs.mMinVal ?? mCfg.GetDefault( "min_val" );
-            if (inspector.Contains( "{MaxVal}" ))
-                dict["MaxVal"] = field.mArgs.mMaxVal ?? mCfg.GetDefault( "max_val" );
-            if (inspector.Contains( "{DragSpeed}" ))
-                dict["DragSpeed"] = field.mArgs.mDragSpeed ?? mCfg.GetDefault( "drag_speed" );
-            if (inspector.Contains( "{Droppable}" ))
-                dict["Droppable"] = field.mArgs.mDroppable ?? mCfg.GetDefault( "droppable" );
+            mSbuilder.AppendLine( $"\t\t{getter}" );
 
-            mSbuilder.AppendLine( $"\t\t{inspector.FormatWith( dict )};" );
+            string check = mCfg.GetTemplate( "editor_fn_getter_check" ).FormatWith( "Var", variableName );
+            mSbuilder.AppendLine( $"\t\t{check}" );
+
+            foreach (var field in info.mFields) {
+
+                bool isDroppable = field.mArgs.mDroppable != null;
+
+                string inspector;
+                if (!isDroppable) {
+                    inspector = mCfg.TypeToInspector( field.mType ) ??
+                        throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
+                }
+                else {
+                    inspector = mCfg.TypeToDroppableInspector( field.mType ) ?? 
+                        throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
+                }
+
+                string fieldName = field.ResolveDisplayName(mCfg);
+                var dict = new Dictionary<string, string> {
+                    { "DisplayName", fieldName },
+                    { "FieldName", field.mName },
+                    { "Var", variableName },
+                };
+
+                if (inspector.Contains( "{Speed}" ))
+                    dict["Speed"] = field.mArgs.mDragSpeed ?? mCfg.GetDefault( "drag_speed" );
+                if (inspector.Contains( "{MinVal}" ))
+                    dict["MinVal"] = field.mArgs.mMinVal ?? mCfg.GetDefault( "min_val" );
+                if (inspector.Contains( "{MaxVal}" ))
+                    dict["MaxVal"] = field.mArgs.mMaxVal ?? mCfg.GetDefault( "max_val" );
+                if (inspector.Contains( "{DragSpeed}" ))
+                    dict["DragSpeed"] = field.mArgs.mDragSpeed ?? mCfg.GetDefault( "drag_speed" );
+                if (inspector.Contains( "{Droppable}" ))
+                    dict["Droppable"] = field.mArgs.mDroppable ?? mCfg.GetDefault( "droppable" );
+
+                mSbuilder.AppendLine( $"\t\t{inspector.FormatWith( dict )};" );
+            }
+
+            mSbuilder.AppendLine( "\n\t}\n" );
+            //mIncludes.Add( info.mOriginalFilepath );
+            */
         }
-
-        mSbuilder.AppendLine( "\n\t}\n" );
-        //mIncludes.Add( info.mOriginalFilepath );
-    }
 
     public void Finalize( string root, List<ClassGeneratedInfo> components, OutputProperties outProps ) {
 
-        string editorDepMgrPath = new( "" ); //Path.Combine( root, mCfg.GetPath( "editor_dep_manager_path" ) );
-        string editorDepMgrInclude = new( "" ); //mCfg.GetPath( "editor_dep_manager_include" );
-
-        string editorFnNamespace = mCfg.GetTemplate( "editor_fn_namespace" );
-        if (!File.Exists( editorDepMgrPath )) throw new Exception( $"Path to editor dependency manager is invalid: {editorDepMgrPath}" );
-
         /*
-        var relativeIncludes = components.Values
-            .Select( v => v.mGeneratedFilepath )
-            .Distinct( )
-            .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( editorDepMgrPath )!, absPath ) );
+         string editorDepMgrPath = new( "" ); //Path.Combine( root, mCfg.GetPath( "editor_dep_manager_path" ) );
+         string editorDepMgrInclude = new( "" ); //mCfg.GetPath( "editor_dep_manager_include" );
 
-        //LhcPipeline.GeneratePreamble( mOutputBuilder, null, new[] { editorDepMgrInclude }.Concat( relativeIncludes ) );
+         string editorFnNamespace = mCfg.GetTemplate( "editor_fn_namespace" );
+         if (!File.Exists( editorDepMgrPath )) throw new Exception( $"Path to editor dependency manager is invalid: {editorDepMgrPath}" );
 
-        mOutputBuilder.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
+         var relativeIncludes = components.Values
+             .Select( v => v.mGeneratedFilepath )
+             .Distinct( )
+             .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( editorDepMgrPath )!, absPath ) );
 
-        mOutputBuilder.Append( mSbuilder.ToString( ) );
-        generate_editor_registry( mOutputBuilder, components );
+         //LhcPipeline.GeneratePreamble( mOutputBuilder, null, new[] { editorDepMgrInclude }.Concat( relativeIncludes ) );
 
-        mOutputBuilder.AppendLine( "} " + $"// namespace {editorFnNamespace}\n" ); // namespace
+         mOutputBuilder.AppendLine( $"namespace {editorFnNamespace}" + " {\n" );
 
-        string outputPath = Path.Combine(
-            Path.GetDirectoryName( editorDepMgrPath )!,
-            Path.GetFileNameWithoutExtension( editorDepMgrPath ) + ".generated.hpp"
-        );
+         mOutputBuilder.Append( mSbuilder.ToString( ) );
+         generate_editor_registry( mOutputBuilder, components );
 
-        generate_category_color_getter( mOutputBuilder );
-        generate_category_icon_getter( mOutputBuilder );
-       
-        File.WriteAllText( outputPath, mOutputBuilder.ToString( ) );
-       */
+         mOutputBuilder.AppendLine( "} " + $"// namespace {editorFnNamespace}\n" ); // namespace
+
+         string outputPath = Path.Combine(
+             Path.GetDirectoryName( editorDepMgrPath )!,
+             Path.GetFileNameWithoutExtension( editorDepMgrPath ) + ".generated.hpp"
+         );
+
+         generate_category_color_getter( mOutputBuilder );
+         generate_category_icon_getter( mOutputBuilder );
+
+         File.WriteAllText( outputPath, mOutputBuilder.ToString( ) );
+        */
 
     }
 
@@ -114,17 +165,17 @@ internal class EditorRegistry : IRegistry {
         sb.AppendLine( $"\tinline void {mCfg.GetTemplate( "editor_fn_registry" ).FormatWith( "Param", mapName )}" + " {" );
 
         foreach (var (key, val) in components) {
-            string displayName = val.mInfo.ResolveDisplayName();
+            string displayName = val.mInfo.ResolveDisplayName( );
             string category = val.mInfo.mArgs.mCategoryName ?? mCfg.GetDefault( "category" );
-            sb.AppendLine( 
-                $"\t\t{mapName}[ HashString( \"{val.mInfo.ResolveParseName()}\" ) ] = {{\n " +
+            sb.AppendLine(
+                $"\t\t{mapName}[ HashString( \"{val.mInfo.ResolveParseName( )}\" ) ] = {{\n " +
                 $"\t\t\t{val.mEditorFnName},\n " +
-                $"\t\t\t{mCfg.GetTemplate("editor_fn_registry_add_fn").FormatWith("ClassName", val.mInfo.mTypeName)},\n" +
-                $"\t\t\t{mCfg.GetTemplate("editor_fn_registry_remove_fn").FormatWith("ClassName", val.mInfo.mTypeName)},\n" +
+                $"\t\t\t{mCfg.GetTemplate( "editor_fn_registry_add_fn" ).FormatWith( "ClassName", val.mInfo.mTypeName )},\n" +
+                $"\t\t\t{mCfg.GetTemplate( "editor_fn_registry_remove_fn" ).FormatWith( "ClassName", val.mInfo.mTypeName )},\n" +
                 $"\t\t\t\"{displayName}\",\n" +
                 $"\t\t\t\"{category}\",\n" +
-                $"\t\t\t{mCfg.GetTemplate("editor_fn_registry_typeid").FormatWith("ClassName", val.mInfo.mTypeName)},\n" +
-                $"\t\t}};" 
+                $"\t\t\t{mCfg.GetTemplate( "editor_fn_registry_typeid" ).FormatWith( "ClassName", val.mInfo.mTypeName )},\n" +
+                $"\t\t}};"
                 );
         }
 
@@ -174,7 +225,7 @@ internal class EditorRegistry : IRegistry {
         string signature = mCfg.GetTemplate( "get_category_icon_signature" ).FormatWith( "VariableName", variableName );
         sb.AppendLine( $"\tinline {returnType} {signature} {{" );
         sb.AppendLine( $"\t\tstatic std::unordered_map<HashedString, {returnType}> sIcons = {{" );
-        foreach( var icon in mCfg.category_icons) {
+        foreach (var icon in mCfg.category_icons) {
 
             sb.AppendLine( $"\t\t\t{{ HashString( \"{icon.Key}\" ), {{ {icon.Value} }} }}," );
 

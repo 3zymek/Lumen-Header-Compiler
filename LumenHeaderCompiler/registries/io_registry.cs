@@ -11,7 +11,7 @@ internal class IoRegistry : IRegistry {
         mCfg = cfg;
     }
 
-    public void GenerateFile( string sourceFile, ClassInfo info ) {
+    public void HandleFile( string sourceFile, ClassInfo info ) {
 
         StringBuilder sb = new( );
         string preamble = mCfg.ResolveFilePreamble( sourceFile );

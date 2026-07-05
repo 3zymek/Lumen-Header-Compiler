@@ -25,15 +25,7 @@ internal class LhcPipeline {
         mRootDir = rootDir;
 
         mRegistries.Add( "io_registry", new IoRegistry( mCfg ) );
-        //mRegistries.Add( "editor_registry", new EditorRegistry( mCfg ) );
-        /*
-         {
-            "registry_type": "editor_registry",
-            "base_filepath": "mgrs/editor_dep_manager.hpp",
-            "template_function": "editor_function",
-            "function_namespace": "lum::editor"
-         }
-        */
+        mRegistries.Add( "editor_registry", new EditorRegistry( mCfg ) );
 
     }
 
@@ -70,7 +62,7 @@ internal class LhcPipeline {
             foreach( var output in mCfg.outputs ) {
                 
                 if(mRegistries.TryGetValue( output.registry_type, out var registry )) {
-                    registry.GenerateFile( sourceFile, info );
+                    registry.HandleFile( sourceFile, info );
                 }
                 else throw new Exception( $"Unsupported registry type: '{output.registry_type}'" );
 

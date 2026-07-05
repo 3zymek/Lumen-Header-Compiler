@@ -18,7 +18,7 @@ internal static class ParseHelper {
 
         int index = parseFn.IndexOf( "{Fields}" );
 
-        if (index == -1) throw new Exception( $"Couldn't find Fields parameter in parse_function" );
+        if (index == -1) throw new ArgumentNullException( $"Couldn't find Fields parameter in parse_function" );
 
         string alignment = new( "" );
         for (int i = index - 1; i >= 0; i--) {
