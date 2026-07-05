@@ -17,7 +17,12 @@ internal enum TokenType {
     LAngle,
     RAngle
 }
-internal record Token( TokenType mType, string mValue );
+internal record Token(
+    TokenType mType,
+    string mValue,
+    int mLine,
+    string mFile
+    );
 
 internal class Tokenizer {
 
@@ -33,12 +38,14 @@ internal class Tokenizer {
 
         string content = File.ReadAllText( filename );
 
+        int currentLine = 1;
         int i = 0;
         while (i < content.Length) {
 
             char c = content[i];
 
             if (char.IsWhiteSpace( c )) { i++; continue; }
+            if (c == '\n') { currentLine++; continue; }
 
             else if (c == '/' && i + 1 < content.Length && content[i + 1] == '*') {
                 i += 2;
@@ -65,15 +72,15 @@ internal class Tokenizer {
                     value += content[i++];
 
                 if (value == "LCLASS") {
-                    mTokens.Add( new( TokenType.Macro, value ) );
+                    mTokens.Add( new( TokenType.Macro, value, currentLine, filename ) );
                 }
                 else if (value == "LPROPERTY") {
-                    mTokens.Add( new( TokenType.Macro, value ) );
+                    mTokens.Add( new( TokenType.Macro, value, currentLine, filename ) );
                 }
                 else if (value == "class" || value == "struct") {
-                    mTokens.Add( new( TokenType.Keyword, value ) );
+                    mTokens.Add( new( TokenType.Keyword, value, currentLine, filename ) );
                 }
-                else mTokens.Add( new( TokenType.Identifier, value ) );
+                else mTokens.Add( new( TokenType.Identifier, value, currentLine, filename ) );
 
             }
             else if (char.IsDigit( c ) || (c == '-' && i + 1 < content.Length && char.IsDigit( content[i + 1] ))) {
@@ -88,7 +95,7 @@ internal class Tokenizer {
                 if (i < content.Length && (content[i] == 'f' || content[i] == 'u' || content[i] == 'l' || content[i] == 'L'))
                     i++;
 
-                mTokens.Add( new( TokenType.Number, value ) );
+                mTokens.Add( new( TokenType.Number, value, currentLine, filename ) );
 
             }
             else if (c == '"') {
@@ -98,18 +105,18 @@ internal class Tokenizer {
                     value += content[i++];
                 }
                 i++;
-                mTokens.Add( new( TokenType.String, value ) );
+                mTokens.Add( new( TokenType.String, value, currentLine, filename ) );
             }
-            else if (c == '<') { mTokens.Add( new( TokenType.LAngle, "<" ) ); i++; }
-            else if (c == '>') { mTokens.Add( new( TokenType.RAngle, ">" ) ); i++; }
-            else if (c == '{') { mTokens.Add( new( TokenType.LBracket, "{" ) ); i++; }
-            else if (c == '}') { mTokens.Add( new( TokenType.RBracket, "}" ) ); i++; }
-            else if (c == '(') { mTokens.Add( new( TokenType.LParen, "(" ) ); i++; }
-            else if (c == ')') { mTokens.Add( new( TokenType.RParen, ")" ) ); i++; }
-            else if (c == ';') { mTokens.Add( new( TokenType.Semicolon, ";" ) ); i++; }
-            else if (c == ':') { mTokens.Add( new( TokenType.Colon, ":" ) ); i++; }
-            else if (c == '=') { mTokens.Add( new( TokenType.Equals, "=" ) ); i++; }
-            else if (c == ',') { mTokens.Add( new( TokenType.Comma, "," ) ); i++; }
+            else if (c == '<') { mTokens.Add( new( TokenType.LAngle, "<", currentLine, filename ) ); i++; }
+            else if (c == '>') { mTokens.Add( new( TokenType.RAngle, ">", currentLine, filename ) ); i++; }
+            else if (c == '{') { mTokens.Add( new( TokenType.LBracket, "{", currentLine, filename ) ); i++; }
+            else if (c == '}') { mTokens.Add( new( TokenType.RBracket, "}", currentLine, filename ) ); i++; }
+            else if (c == '(') { mTokens.Add( new( TokenType.LParen, "(", currentLine, filename ) ); i++; }
+            else if (c == ')') { mTokens.Add( new( TokenType.RParen, ")", currentLine, filename ) ); i++; }
+            else if (c == ';') { mTokens.Add( new( TokenType.Semicolon, ";", currentLine, filename ) ); i++; }
+            else if (c == ':') { mTokens.Add( new( TokenType.Colon, ":", currentLine, filename ) ); i++; }
+            else if (c == '=') { mTokens.Add( new( TokenType.Equals, "=", currentLine, filename ) ); i++; }
+            else if (c == ',') { mTokens.Add( new( TokenType.Comma, ",", currentLine, filename ) ); i++; }
             else i++;
 
         }

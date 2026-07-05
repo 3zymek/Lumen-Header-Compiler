@@ -24,7 +24,7 @@ internal class LhcPipeline {
         mCfg = cfg;
         mRootDir = rootDir;
 
-        mRegistries.Add( "parse_registry", new ParseRegistry( mCfg ) );
+        mRegistries.Add( "io_registry", new IoRegistry( mCfg ) );
         //mRegistries.Add( "editor_registry", new EditorRegistry( mCfg ) );
         /*
          {
@@ -108,7 +108,7 @@ internal class LhcPipeline {
         foreach (var output in mCfg.outputs) {
 
             if (mRegistries.TryGetValue( output.registry_type, out var registry )) {
-                registry.io_registry( mRootDir, mClassInfos, output );
+                registry.Finalize( mRootDir, mClassInfos, output );
             }
             else throw new Exception( $"Unsupported registry type: '{output.registry_type}'" );
 

@@ -9,9 +9,7 @@ internal record TypeProperties(
     );
 internal record OutputProperties(
     string registry_type,
-    string base_filepath,
-    string template_function,
-    string function_namespace
+    string finalize_path
     );
 internal record ConfigFile(
     List<OutputProperties> outputs,

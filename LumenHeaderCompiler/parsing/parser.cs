@@ -29,7 +29,7 @@ internal class Parser {
 
     private Token expect( TokenType type ) {
         if (type != mCurrent.mType) {
-            throw new Exception( $"Expected {type} but got {mCurrent.mType}" );
+            throw new LhcException( $"Expected {type} but got {mCurrent.mType}", mCurrent.mFile, mCurrent.mLine );
         }
         return increment( );
     }
@@ -71,7 +71,7 @@ internal class Parser {
         expect( TokenType.RParen );
 
         if (mComponents.Count == 0)
-            throw new Exception( $"LPROPERTY found before any LCLASS in {mCurrent}" );
+            throw new LhcException( $"LPROPERTY found before any LCLASS in {mCurrent}", mCurrent.mFile, mCurrent.mLine );
 
         string type = parse_type( );
         string name = parse_name( );
