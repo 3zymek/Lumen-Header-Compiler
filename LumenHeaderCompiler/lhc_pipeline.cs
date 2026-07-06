@@ -14,7 +14,7 @@ internal record ClassGeneratedInfo(
 internal class LhcPipeline {
 
     private readonly ConfigFile mCfg;
-    private readonly string mRootDir;
+    public static string mRootDir { get; private set; }
 
     private List<ClassGeneratedInfo> mClassInfos = new( );
     private readonly Dictionary<string, IRegistry> mRegistries = new( );
@@ -29,7 +29,7 @@ internal class LhcPipeline {
 
     }
 
-    public void GenerateFile( string sourceFile, List<ClassInfo> classInfos ) {
+    public void HandleFile( string sourceFile, List<ClassInfo> classInfos ) {
 
         if (!File.Exists( sourceFile )) { throw new Exception( $"File {sourceFile} doesn't exist" ); }
 

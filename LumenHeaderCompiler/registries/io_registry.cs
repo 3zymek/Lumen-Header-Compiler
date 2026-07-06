@@ -31,7 +31,7 @@ internal class IoRegistry : IRegistry {
             one file for both functions AND ADD COMPONENT NAME GETTERS FROM LhcPipeline ~03.07.2026
         */
 
-        string generatedPath = sourceFile.MakeGeneratedHeaderPath( );
+        string generatedPath = sourceFile.MakeGeneratedPath( "hpp" );
         File.WriteAllText( generatedPath, sb.ToString( ) );
     }
 

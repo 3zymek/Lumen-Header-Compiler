@@ -44,14 +44,14 @@ internal static class NamingHelpers {
         return name.ToLower( ).Replace( ' ', '_' );
     }
 
-    public static string MakeGeneratedHeaderPath( this string sourceFile ) {
+    public static string MakeGeneratedPath( this string sourceFile, string extension ) {
         if (string.IsNullOrEmpty( sourceFile ))
             throw new ArgumentException( "Source file path cannot be null or empty.", nameof( sourceFile ) );
 
         string directory = Path.GetDirectoryName( sourceFile ) ?? "";
         string fileNameWithoutExt = Path.GetFileNameWithoutExtension( sourceFile );
 
-        return Path.Combine( directory, $"{fileNameWithoutExt}.generated.hpp" );
+        return Path.Combine( directory, $"{fileNameWithoutExt}.generated.{extension}" );
     }
 
 }

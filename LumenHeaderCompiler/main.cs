@@ -51,8 +51,8 @@ internal class Program {
             Console.WriteLine( $"Parsing: {file}" );
             parser.Parse( );
 
-            if (parser.mComponents.Count > 0) {
-                lhcPipeline.GenerateFile( file, parser.mComponents );
+            if (parser.mClassInfos.Count > 0) {
+                lhcPipeline.HandleFile( file, parser.mClassInfos );
             }
 
         }

@@ -16,16 +16,18 @@ internal record ClassInfo( string mTypeName, QualifierArgs mArgs, List<FieldInfo
 
 internal class Parser {
 
-    public readonly List<ClassInfo> mComponents = new( );
+    public readonly List<ClassInfo> mClassInfos = new( );
 
     private List<Token> mTokens;
     private int mPosition = 0;
 
+    public Parser( Tokenizer tokenizer ) { 
+        mTokens = tokenizer.mTokens; 
+    }
+
     private Token mCurrent => mTokens[mPosition];
     private Token increment( ) => mTokens[mPosition++];
     private Token preincrement( ) => mTokens[++mPosition];
-
-    public Parser( Tokenizer tokenizer ) { mTokens = tokenizer.mTokens; }
 
     private Token expect( TokenType type ) {
         if (type != mCurrent.mType) {
@@ -70,7 +72,7 @@ internal class Parser {
 
         expect( TokenType.RParen );
 
-        if (mComponents.Count == 0)
+        if (mClassInfos.Count == 0)
             throw new LhcException( $"LPROPERTY found before any LCLASS in {mCurrent}", mCurrent.mFile, mCurrent.mLine );
 
         string type = parse_type( );
@@ -80,7 +82,7 @@ internal class Parser {
             increment( );
         increment( );
 
-        mComponents.Last( ).mFields.Add( new FieldInfo( type, args, name ) );
+        mClassInfos.Last( ).mFields.Add( new FieldInfo( type, args, name ) );
 
     }
 
@@ -192,13 +194,13 @@ internal class Parser {
         string keyword = expect( TokenType.Keyword ).mValue;
         string name = expect( TokenType.Identifier ).mValue;
 
-        mComponents.Add( new ClassInfo( name, args, new( ) ) );
+        mClassInfos.Add( new ClassInfo( name, args, new( ) ) );
 
     }
 
     public void Parse( ) {
 
-        mComponents.Clear( );
+        mClassInfos.Clear( );
         mPosition = 0;
 
         while (mPosition < mTokens.Count) {

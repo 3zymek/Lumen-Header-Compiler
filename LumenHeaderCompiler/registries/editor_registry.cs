@@ -11,119 +11,113 @@ namespace lhc;
 internal class EditorRegistry : IRegistry {
 
     private readonly ConfigFile mCfg;
-    private List<ClassInfo> mForwardDeclares;
-    private List<string> mExtraIncludes;
+    private StringBuilder mHeaderFile = new( );
+    private StringBuilder mSourceFile = new( );
+    private List<string> mExtraIncludes = new( );
+    private string? mFunctionNamespace = null;
 
 
     public EditorRegistry( ConfigFile cfg ) {
 
         mCfg = cfg;
-    
+
+        string fnNamespace = mCfg.GetTemplate( "editor_fn_namespace" );
+        if (fnNamespace.Trim( ) != "")
+            mFunctionNamespace = fnNamespace;
+
+        initialize_files( );
+
     }
 
     public void HandleFile( string sourceFile, ClassInfo info ) {
 
-        StringBuilder sb = new( );
-        string preamble = mCfg.ResolveFilePreamble( sourceFile );
-        sb.AppendLine( preamble );
-        
-        string editorFn = string.Join( '\n', mCfg.GetBlueprint( "editor_fn" ) );
-        editorFn = editorFn.FormatWith( new( )
-        {
+        Dictionary<string, string> functionFormats = new( ) {
             { "ClassName", info.mTypeName },
             { "Var", mCfg.GetTemplate("editor_fn_var") }
-        } );
+        };
+
+        string fnSignature = mCfg.GetTemplate( "editor_fn_signature" ).FormatWith( functionFormats );
+        string indent = mFunctionNamespace != null ? "\t" : "";
+        string variableName = mCfg.GetTemplate( "editor_fn_var" );
+        string editorFn = string.Join( $"\n", mCfg.GetBlueprint( "editor_fn" ) );
+        editorFn = editorFn.FormatWith( "Signature", fnSignature );
+        editorFn = editorFn.FormatWith( functionFormats );
 
         int index = editorFn.IndexOf( "{Inspector}" );
-
         if (index == -1) throw new ArgumentNullException( "Couldn't find Inspector parameter in editor_function" );
 
-        string alignment = new("");
-        for(int i = index - 1; i >= 0; i--) {
-
+        string blueprintSpacing = "";
+        for (int i = index - 1; i >= 0; i--) {
             char c = editorFn[i];
-
             if (c == '\n' || c == '\r')
                 break;
 
             if (char.IsWhiteSpace( c ))
-                alignment = c + alignment;
-            else break;
-
+                blueprintSpacing = c + blueprintSpacing;
+            else
+                break;
         }
+
+        mHeaderFile.AppendLine( $"{blueprintSpacing}{fnSignature};" );
 
         string preInspector = editorFn.Substring( 0, index );
         string postInspector = editorFn.Substring( index + "{Inspector}".Length );
-        
-        foreach ( var field in info.mFields ) {
 
+        StringBuilder inspectorSb = new( );
+        for (int i = 0; i < info.mFields.Count; i++) {
+
+            FieldInfo field = info.mFields[i];
             bool isDroppable = field.mArgs.mDroppable != null;
 
-            string? inspector;
+            string? inspector = null;
             if (!isDroppable)
                 inspector = mCfg.TypeToInspector( field.mType );
             else
                 inspector = mCfg.TypeToDroppableInspector( field.mType );
 
-            if(inspector == null)
+            if (inspector == null)
                 throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
 
+            string displayName = field.ResolveDisplayName( mCfg );
+            var formats = new Dictionary<string, string> {
+                { "DisplayName", displayName },
+                { "FieldName", field.mName },
+                { "Var", variableName }
+            };
 
-            /*
-            string signature = mCfg.GetTemplate( "editor_fn_signature" ).FormatWith( "ClassName", info.mTypeName );
-            mSbuilder.AppendLine( $"\tinline void {signature}" + " {\n" );
-            string variableName = mCfg.GetTemplate( "editor_fn_comp_name" );
-            string getter = mCfg.GetTemplate( "editor_fn_comp_getter" ).FormatWith( new Dictionary<string, string> {
-                { "Var", variableName },
-                { "ClassName", info.mTypeName }
-            } );
+            if (inspector.Contains( "{Speed}" ))
+                formats["Speed"] = field.mArgs.mDragSpeed ?? mCfg.GetDefault( "drag_speed" );
+            if (inspector.Contains( "{MinVal}" ))
+                formats["MinVal"] = field.mArgs.mMinVal ?? mCfg.GetDefault( "min_val" );
+            if (inspector.Contains( "{MaxVal}" ))
+                formats["MaxVal"] = field.mArgs.mMaxVal ?? mCfg.GetDefault( "max_val" );
+            if (inspector.Contains( "{DragSpeed}" ))
+                formats["DragSpeed"] = field.mArgs.mDragSpeed ?? mCfg.GetDefault( "drag_speed" );
+            if (inspector.Contains( "{Droppable}" ))
+                formats["Droppable"] = field.mArgs.mDroppable ?? mCfg.GetDefault( "droppable" );
 
-            mSbuilder.AppendLine( $"\t\t{getter}" );
+            inspector = inspector.FormatWith( formats );
 
-            string check = mCfg.GetTemplate( "editor_fn_getter_check" ).FormatWith( "Var", variableName );
-            mSbuilder.AppendLine( $"\t\t{check}" );
-
-            foreach (var field in info.mFields) {
-
-                bool isDroppable = field.mArgs.mDroppable != null;
-
-                string inspector;
-                if (!isDroppable) {
-                    inspector = mCfg.TypeToInspector( field.mType ) ??
-                        throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
-                }
-                else {
-                    inspector = mCfg.TypeToDroppableInspector( field.mType ) ?? 
-                        throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
-                }
-
-                string fieldName = field.ResolveDisplayName(mCfg);
-                var dict = new Dictionary<string, string> {
-                    { "DisplayName", fieldName },
-                    { "FieldName", field.mName },
-                    { "Var", variableName },
-                };
-
-                if (inspector.Contains( "{Speed}" ))
-                    dict["Speed"] = field.mArgs.mDragSpeed ?? mCfg.GetDefault( "drag_speed" );
-                if (inspector.Contains( "{MinVal}" ))
-                    dict["MinVal"] = field.mArgs.mMinVal ?? mCfg.GetDefault( "min_val" );
-                if (inspector.Contains( "{MaxVal}" ))
-                    dict["MaxVal"] = field.mArgs.mMaxVal ?? mCfg.GetDefault( "max_val" );
-                if (inspector.Contains( "{DragSpeed}" ))
-                    dict["DragSpeed"] = field.mArgs.mDragSpeed ?? mCfg.GetDefault( "drag_speed" );
-                if (inspector.Contains( "{Droppable}" ))
-                    dict["Droppable"] = field.mArgs.mDroppable ?? mCfg.GetDefault( "droppable" );
-
-                mSbuilder.AppendLine( $"\t\t{inspector.FormatWith( dict )};" );
+            string formattedInspector = inspector.Replace( "\n", "\n" + blueprintSpacing );
+            if (i != 0) {
+                inspectorSb.Append( blueprintSpacing );
             }
-
-            mSbuilder.AppendLine( "\n\t}\n" );
-            //mIncludes.Add( info.mOriginalFilepath );
-            */
+            inspectorSb.AppendLine( formattedInspector );
         }
 
-    public void Finalize( string root, List<ClassGeneratedInfo> components, OutputProperties outProps ) {
+        string result = preInspector + inspectorSb.ToString( ) + postInspector;
+
+        if (mFunctionNamespace != null) {
+            result = indent + result.Replace( "\n", $"\n{indent}" );
+        }
+
+        mSourceFile.AppendLine( result );
+        mExtraIncludes.Add( Path.GetRelativePath( LhcPipeline.mRootDir, sourceFile ) );
+    }
+
+    public void Finalize( string rootDir, List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
+
+
 
         /*
          string editorDepMgrPath = new( "" ); //Path.Combine( root, mCfg.GetPath( "editor_dep_manager_path" ) );
@@ -156,6 +150,46 @@ internal class EditorRegistry : IRegistry {
 
          File.WriteAllText( outputPath, mOutputBuilder.ToString( ) );
         */
+
+        string outputPath = new( "" );
+        foreach (var entry in mCfg.outputs) {
+            if (entry.registry_type == "editor_registry") {
+                outputPath = entry.finalize_path;
+                break;
+            }
+        }
+
+        finalize_files( Path.Combine( LhcPipeline.mRootDir, outputPath ) );
+
+    }
+
+    private void initialize_files( ) {
+
+        string preamble = mCfg.ResolveFilePreamble( null );
+        mHeaderFile.AppendLine( preamble );
+
+        if (mFunctionNamespace != null) {
+            mHeaderFile.AppendLine( $"namespace {mFunctionNamespace} {{" );
+            mSourceFile.AppendLine( $"namespace {mFunctionNamespace} {{" );
+        }
+
+    }
+
+    private void finalize_files( string finalizePath ) {
+
+        if (mFunctionNamespace != null) {
+            mHeaderFile.AppendLine( $"}} // namespace {mFunctionNamespace}" );
+            mSourceFile.AppendLine( $"}} // namespace {mFunctionNamespace}" );
+        }
+
+        string preamble = mCfg.ResolveFilePreamble( finalizePath, mExtraIncludes );
+        string result = $"{preamble}\n{mSourceFile.ToString( )}";
+
+        string generatedSourcePath = finalizePath.MakeGeneratedPath( "cpp" );
+        File.WriteAllText( generatedSourcePath, result );
+
+        string generatedHeaderPath = finalizePath.MakeGeneratedPath( "hpp" );
+        File.WriteAllText( generatedHeaderPath, mHeaderFile.ToString( ) );
 
     }
 
