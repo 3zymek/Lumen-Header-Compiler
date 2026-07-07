@@ -110,7 +110,7 @@ internal static class ParseHelper {
         string preFields = parseRegisterFn.Substring( 0, index );
         string postFields = parseRegisterFn.Substring( "{Fields}".Length + index );
 
-        string registerField = cfg.GetTemplate( "parse_fn_register_field" );
+        string registerField = string.Join( "\n", cfg.GetBlueprint( "parse_fn_register_field" ) );
 
         StringBuilder registrySb = new( );
         for (int i = 0; i < classInfos.Count; i++) {

@@ -28,6 +28,10 @@ internal static class NamingHelpers {
         string fallback = info.mTypeName.StartsWith( 'C' ) ? info.mTypeName[1..] : info.mTypeName;
         return info.mArgs.mDisplayName ?? camel_case_to_display( fallback );
     }
+
+    public static string ResolveCategoryName( this ClassInfo info, string fallback ) {
+        return info.mArgs.mCategoryName ?? fallback;
+    }
     
     public static string ResolveDisplayName( this FieldInfo info, ConfigFile cfg ) {
         string name = info.mName;

@@ -59,7 +59,7 @@ internal static class ConfigFileExtensions {
 
         if (sourceFile != null) sb.AppendLine( $"#include \"{Path.GetFileName(sourceFile)}\"" );
         if(extraIncludes != null) {
-            foreach( var include in extraIncludes) {
+            foreach( var include in extraIncludes.Distinct()) {
                 sb.AppendLine( $"#include \"{include.Replace( '\\', '/' )}\"" );
             }
         }
