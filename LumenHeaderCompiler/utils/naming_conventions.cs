@@ -1,4 +1,6 @@
 
+using System.Globalization;
+
 namespace lhc;
 
 internal static class NamingHelpers {
@@ -56,6 +58,33 @@ internal static class NamingHelpers {
         string fileNameWithoutExt = Path.GetFileNameWithoutExtension( sourceFile );
 
         return Path.Combine( directory, $"{fileNameWithoutExt}.generated.{extension}" );
+    }
+
+    public static int FindTokenIndex( this string blueprint, string blueprintName, string token ) {
+        int index = blueprint.IndexOf( token );
+        if (index == -1) throw new ArgumentNullException( $"Couldn't find {token} token in {blueprintName}" );
+        return index;
+    }
+
+    public static string CalculateIndent( this string str, int baseIndex) {
+        string alignment = new( "" );
+        for(int i = baseIndex - 1; i >= 0; i--) {
+            char c = str[i];
+            if (c == '\n' || c == '\r')
+                break;
+            if (char.IsWhiteSpace( c ))
+                alignment = c + alignment;
+            else break;
+        }
+        return alignment;
+    }
+
+    public static string HexToVector4( this string hex ) {
+        hex = hex.TrimStart( '#' );
+        float r = Convert.ToInt32( hex[0..2], 16 ) / 255.0f;
+        float g = Convert.ToInt32( hex[2..4], 16 ) / 255.0f;
+        float b = Convert.ToInt32( hex[4..6], 16 ) / 255.0f;
+        return $"{r.ToString( "F2", CultureInfo.InvariantCulture )}f, {g.ToString( "F2", CultureInfo.InvariantCulture )}f, {b.ToString( "F2", CultureInfo.InvariantCulture )}f, 1.0f";
     }
 
 }

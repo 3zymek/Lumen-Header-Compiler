@@ -26,6 +26,7 @@ internal class LhcPipeline {
 
         mRegistries.Add( "io_registry", new IoRegistry( mCfg ) );
         mRegistries.Add( "editor_registry", new EditorRegistry( mCfg ) );
+        mRegistries.Add( "ecs_traits_registry", new EcsTraitsRegistry( mCfg ) );
 
     }
 

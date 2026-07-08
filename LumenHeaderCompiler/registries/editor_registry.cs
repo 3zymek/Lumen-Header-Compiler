@@ -52,17 +52,9 @@ internal class EditorRegistry : IRegistry {
     }
 
     private string inject_inspector_fields( string blueprint, ClassInfo info ) {
-        int index = blueprint.IndexOf( "{Inspector}" );
-        if (index == -1) throw new ArgumentNullException( "Couldn't find {Inspector} token in blueprint." );
+        int index = blueprint.FindTokenIndex( "editor_fn", "{Inspector}" );
 
-        string alignment = "";
-        for (int i = index - 1; i >= 0 && blueprint[i] != '\n' && blueprint[i] != '\r'; i--) {
-            char c = blueprint[i];
-            if (char.IsWhiteSpace( c ))
-                alignment = c + alignment;
-            else
-                break;
-        }
+        string alignment = blueprint.CalculateIndent( index );
 
         string preInspector = blueprint.Substring( 0, index );
         string postInspector = blueprint.Substring( index + "{Inspector}".Length );
@@ -130,19 +122,12 @@ internal class EditorRegistry : IRegistry {
     }
 
     private string inject_register_fields( string blueprint, List<ClassInfo> classInfos ) {
-        int index = blueprint.IndexOf( "{Fields}" );
-        if (index == -1) throw new ArgumentNullException( "Couldn't find Inspector parameter in editor_fn_register" );
+        int index = blueprint.FindTokenIndex( "editor_fn_register", "{Fields}" );
 
         string preFields = blueprint.Substring( 0, index );
         string postFields = blueprint.Substring( index + "{Fields}".Length );
 
-        string alignment = new( "" );
-        for (int i = index - 1; i >= 0 && blueprint[i] != '\n' && blueprint[i] != '\r'; i--) {
-            char c = blueprint[i];
-            if (char.IsWhiteSpace( c ))
-                alignment = c + alignment;
-            else break;
-        }
+        string alignment = blueprint.CalculateIndent( index );
 
         string registerFieldBlueprint = string.Join( '\n', mCfg.GetBlueprint( "editor_fn_register_field" ) );
         StringBuilder sb = new( );
@@ -157,13 +142,11 @@ internal class EditorRegistry : IRegistry {
                 { "DisplayName", info.ResolveDisplayName() },
                 { "CategoryName", info.ResolveCategoryName( mCfg.defaults["category"] ) }
             };
-
             string formatted = registerFieldBlueprint.FormatWith( formats );
             formatted = formatted.Replace( "\n", $"\n{alignment}" );
 
             if (i != 0)
                 sb.Append( alignment );
-
             sb.Append( formatted );
 
         }
@@ -202,38 +185,6 @@ internal class EditorRegistry : IRegistry {
 
     }
 
-    private void generate_editor_registry( StringBuilder sb, Dictionary<string, ClassGeneratedInfo> components ) {
-
-        string mapName = "map";
-        sb.AppendLine( $"\tinline void {mCfg.GetTemplate( "editor_fn_registry" ).FormatWith( "Param", mapName )}" + " {" );
-
-        foreach (var (key, val) in components) {
-            string displayName = val.mInfo.ResolveDisplayName( );
-            string category = val.mInfo.mArgs.mCategoryName ?? mCfg.GetDefault( "category" );
-            sb.AppendLine(
-                $"\t\t{mapName}[ HashString( \"{val.mInfo.ResolveParseName( )}\" ) ] = {{\n " +
-                $"\t\t\t{val.mEditorFnName},\n " +
-                $"\t\t\t{mCfg.GetTemplate( "editor_fn_registry_add_fn" ).FormatWith( "ClassName", val.mInfo.mTypeName )},\n" +
-                $"\t\t\t{mCfg.GetTemplate( "editor_fn_registry_remove_fn" ).FormatWith( "ClassName", val.mInfo.mTypeName )},\n" +
-                $"\t\t\t\"{displayName}\",\n" +
-                $"\t\t\t\"{category}\",\n" +
-                $"\t\t\t{mCfg.GetTemplate( "editor_fn_registry_typeid" ).FormatWith( "ClassName", val.mInfo.mTypeName )},\n" +
-                $"\t\t}};"
-                );
-        }
-
-        sb.AppendLine( "\t}\n" ); // function
-
-    }
-
-    private string hex_to_vec4( string hex ) {
-        hex = hex.TrimStart( '#' );
-        float r = Convert.ToInt32( hex[0..2], 16 ) / 255.0f;
-        float g = Convert.ToInt32( hex[2..4], 16 ) / 255.0f;
-        float b = Convert.ToInt32( hex[4..6], 16 ) / 255.0f;
-        return $"{r.ToString( "F2", CultureInfo.InvariantCulture )}f, {g.ToString( "F2", CultureInfo.InvariantCulture )}f, {b.ToString( "F2", CultureInfo.InvariantCulture )}f, 1.0f";
-    }
-
     private void generate_category_color_getter( StringBuilder sb ) {
 
         string namespaceName = mCfg.GetTemplate( "get_category_color_namespace" );
@@ -246,7 +197,7 @@ internal class EditorRegistry : IRegistry {
         sb.AppendLine( $"\t\tstatic std::unordered_map<HashedString, {returnType}> sColors = {{" );
         foreach (var color in mCfg.category_colors) {
 
-            sb.AppendLine( $"\t\t\t{{ HashString( \"{color.Key}\" ), {{ {hex_to_vec4( color.Value )} }} }}," );
+            sb.AppendLine( $"\t\t\t{{ HashString( \"{color.Key}\" ), {{ {color.Value.HexToVector4()} }} }}," );
 
         }
 
