@@ -35,15 +35,11 @@ internal class LhcPipeline {
         if (!File.Exists( sourceFile )) { throw new Exception( $"File {sourceFile} doesn't exist" ); }
 
         StringBuilder sb = new( );
-        string generatedPath = Path.Combine(
-            Path.GetDirectoryName( sourceFile )!,
-            Path.GetFileNameWithoutExtension( sourceFile ) + ".generated.hpp"
-        );
+        string generatedPath = sourceFile.MakeGeneratedPath( "hpp" );
 
         string preamble = mCfg.ResolveFilePreamble( sourceFile );
         sb.AppendLine( preamble );
 
-        //GeneratePreamble( sb, sourceFile, new[] { mCfg.GetPath( "scene_dep_manager_include" ) } );
         foreach (var info in classInfos) {
 
             string compName = info.ResolveParseName( );

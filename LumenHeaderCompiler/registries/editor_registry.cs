@@ -62,7 +62,7 @@ internal class EditorRegistry : IRegistry {
         StringBuilder inspectorSb = new( );
         for (int i = 0; i < info.mFields.Count; i++) {
             string inspector = build_field_inspector( info.mFields[i] );
-            string formattedInspector = inspector.Replace( "\n", "\n" + alignment );
+            string formattedInspector = inspector.Replace( "\n", $"\n{alignment}" );
 
             if (i != 0) inspectorSb.Append( alignment );
             inspectorSb.Append( formattedInspector );
