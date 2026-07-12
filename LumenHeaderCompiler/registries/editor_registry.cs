@@ -140,7 +140,7 @@ internal class EditorRegistry : IRegistry {
                 { "ParseName", info.ResolveParseName() },
                 { "ClassName", info.mTypeName },
                 { "DisplayName", info.ResolveDisplayName() },
-                { "CategoryName", info.ResolveCategoryName( mCfg.defaults["category"] ) }
+                { "CategoryName", info.ResolveCategoryName( mCfg ) }
             };
             string formatted = registerFieldBlueprint.FormatWith( formats );
             formatted = formatted.Replace( "\n", $"\n{alignment}" );

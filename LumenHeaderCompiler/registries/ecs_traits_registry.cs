@@ -5,12 +5,51 @@ using System.Text;
 
 namespace lhc;
 
+internal enum ETraitType {
+    ParseName,
+    DisplayName,
+    CategoryName
+}
+
+internal class TraitConfig {
+    public string mToken { get; set; } = "";
+    public string mBlueprintName { get; set; } = "";
+}
+
 internal class EcsTraitsRegistry : IRegistry {
 
-    ConfigFile mCfg;
-
+    private readonly ConfigFile mCfg;
+    private readonly static Dictionary<ETraitType, TraitConfig> sTraitToConfig = new( )
+    {
+        {
+            ETraitType.ParseName, new TraitConfig
+            {
+                mToken = "{ParseNameTraits}",
+                mBlueprintName = "ecs_trait_parse_name"
+            }
+        },
+        {
+            ETraitType.DisplayName, new TraitConfig
+            {
+                mToken = "{DisplayNameTraits}",
+                mBlueprintName = "ecs_trait_display_name"
+            }
+        },
+        {
+            ETraitType.CategoryName, new TraitConfig
+            {
+                mToken = "{CategoryNameTraits}",
+                mBlueprintName = "ecs_trait_category_name"
+            }
+        }
+    };
     public EcsTraitsRegistry( ConfigFile cfg ) {
         mCfg = cfg;
+    }
+    private TraitConfig get_config(ETraitType type) {
+        if(sTraitToConfig.TryGetValue( type, out var val ))
+            return val;
+        throw new ArgumentException( $"Missing config for trait: {type}" );
     }
 
     public void HandleFile( string sourceFile, ClassInfo info ) {
@@ -19,28 +58,36 @@ internal class EcsTraitsRegistry : IRegistry {
 
     public void Finalize( string rootDir, List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
 
+        string combinedPath = Path.Combine( rootDir, outProps.finalize_path );
         StringBuilder sb = new( );
 
-        string preamble = mCfg.ResolveFilePreamble( null );
-        sb.AppendLine( preamble );
+        string preamble = mCfg.ResolveFilePreamble( combinedPath );
+        sb.Append( preamble );
 
         string baseFileBlueprint = string.Join( '\n', mCfg.GetBlueprint( "ecs_traits_basefile" ) );
-        string result = inject_parse_traits( baseFileBlueprint, classInfos );
 
-        string generatedPath = Path.Combine(rootDir, outProps.finalize_path).MakeGeneratedPath( "hpp" );
-        File.WriteAllText( generatedPath, result );
+        string result = baseFileBlueprint;
+        foreach (var (traitType, config) in sTraitToConfig) {
+            result = inject_trait_type( config, result, classInfos );
+        }
+
+        sb.Append( result );
+
+        string generatedPath = combinedPath.MakeGeneratedPath( "hpp" );
+        File.WriteAllText( generatedPath, sb.ToString() );
 
     }
 
-    private string inject_parse_traits( string blueprint, List<ClassGeneratedInfo> classInfos ) {
-        int index = blueprint.FindTokenIndex( "ecs_traits_basefile", "{ParseNameTraits}" );
+    private string inject_trait_type( TraitConfig cfg, string baseStr, List<ClassGeneratedInfo> classInfos ) {
 
-        string preTraits = blueprint.Substring( 0, index );
-        string postTraits = blueprint.Substring( index + "{ParseNameTraits}".Length );
+        int index = baseStr.FindTokenIndex( "ecs_traits_basefile", cfg.mToken );
 
-        string alignment = blueprint.CalculateIndent( index );
+        string preTraits = baseStr.Substring( 0, index );
+        string postTraits = baseStr.Substring( index + cfg.mToken.Length );
 
-        string parseNameTrait = string.Join('\n', mCfg.GetBlueprint( "ecs_trait_parse_name" ));
+        string alignment = baseStr.CalculateIndent( index );
+
+        string parseNameTrait = string.Join( '\n', mCfg.GetBlueprint( cfg.mBlueprintName ) );
         StringBuilder sb = new( );
         for (int i = 0; i < classInfos.Count; i++) {
 
@@ -48,8 +95,10 @@ internal class EcsTraitsRegistry : IRegistry {
 
             var formats = new Dictionary<string, string>( )
             {
-                {"ClassName", info.mInfo.mTypeName },
-                {"ParseName", info.mInfo.ResolveParseName() }
+                { "ClassName", info.mInfo.mTypeName },
+                { "ParseName", info.mInfo.ResolveParseName() },
+                { "DisplayName", info.mInfo.ResolveDisplayName() },
+                { "CategoryName", info.mInfo.ResolveCategoryName(mCfg) }
             };
             string formatted = parseNameTrait.FormatWith( formats );
             formatted = formatted.Replace( "\n", $"\n{alignment}" );
@@ -62,12 +111,6 @@ internal class EcsTraitsRegistry : IRegistry {
 
         string result = preTraits + sb.ToString( ) + postTraits;
         return result;
-
-    }
-    private void inject_display_traits( ) {
-
-    }
-    private void inject_category_traits( ) {
 
     }
 

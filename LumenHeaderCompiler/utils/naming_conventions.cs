@@ -31,8 +31,10 @@ internal static class NamingHelpers {
         return info.mArgs.mDisplayName ?? camel_case_to_display( fallback );
     }
 
-    public static string ResolveCategoryName( this ClassInfo info, string fallback ) {
-        return info.mArgs.mCategoryName ?? fallback;
+    public static string ResolveCategoryName( this ClassInfo info, ConfigFile cfg ) {
+        return info.mArgs.mCategoryName ?? 
+            cfg.GetDefault("category") ??
+                throw new ArgumentNullException("Missing \"category\" default value in config.json");
     }
     
     public static string ResolveDisplayName( this FieldInfo info, ConfigFile cfg ) {
