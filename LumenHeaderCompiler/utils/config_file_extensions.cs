@@ -15,6 +15,11 @@ internal static class ConfigFileExtensions {
              ? val
              : throw new KeyNotFoundException( $"Missing function template key '{key}' in config.json" );
     }
+    public static string GetBlueprint( this ConfigFile cfg, string key, string separator ) {
+        return cfg.blueprints.TryGetValue( key, out var val )
+            ? string.Join( separator, val )
+            : throw new KeyNotFoundException( $"Missing function template key '{key}' in config.json" );
+    }
 
     public static string GetDefault(this ConfigFile cfg, string key) {
         return cfg.defaults.TryGetValue( key, out var val )

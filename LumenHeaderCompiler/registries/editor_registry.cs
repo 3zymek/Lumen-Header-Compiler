@@ -36,7 +36,7 @@ internal class EditorRegistry : IRegistry {
         string hppIndent = mFunctionNamespace != null ? "\t" : "";
         mHeaderFile.AppendLine( $"{hppIndent}{fnSignature};" );
 
-        string editorFn = string.Join( "\n", mCfg.GetBlueprint( "editor_fn" ) );
+        string editorFn = mCfg.GetBlueprint( "editor_fn", "\n" );
         editorFn = editorFn.FormatWith( "Signature", fnSignature ).FormatWith( functionFormats );
 
         string result = inject_inspector_fields( editorFn, info );
@@ -129,7 +129,7 @@ internal class EditorRegistry : IRegistry {
 
         string alignment = blueprint.CalculateIndent( index );
 
-        string registerFieldBlueprint = string.Join( '\n', mCfg.GetBlueprint( "editor_fn_register_field" ) );
+        string registerFieldBlueprint = mCfg.GetBlueprint( "editor_fn_register_field", "\n" );
         StringBuilder sb = new( );
         for (int i = 0; i < classInfos.Count; i++) {
 
@@ -158,7 +158,7 @@ internal class EditorRegistry : IRegistry {
     private void finalize_files( string finalizePath ) {
 
         string editorRegisterSignature = mCfg.GetTemplate( "editor_fn_register_signature" );
-        string editorRegister = string.Join( '\n', mCfg.GetBlueprint( "editor_fn_register" ) );
+        string editorRegister = mCfg.GetBlueprint( "editor_fn_register", "\n" );
         editorRegister = editorRegister.FormatWith( "Signature", editorRegisterSignature );
 
         string indent = (mFunctionNamespace != null) ? "\t" : "";
@@ -182,54 +182,6 @@ internal class EditorRegistry : IRegistry {
 
         string generatedHeaderPath = finalizePath.MakeGeneratedPath( "hpp" );
         File.WriteAllText( generatedHeaderPath, mHeaderFile.ToString( ) );
-
-    }
-
-    private void generate_category_color_getter( StringBuilder sb ) {
-
-        string namespaceName = mCfg.GetTemplate( "get_category_color_namespace" );
-        sb.AppendLine( $"namespace {namespaceName} {{\n" );
-
-        string variableName = "category";
-        string returnType = mCfg.GetTemplate( "get_category_color_return" );
-        string signature = mCfg.GetTemplate( "get_category_color_signature" ).FormatWith( "VariableName", variableName );
-        sb.AppendLine( $"\tinline {returnType} {signature} {{" );
-        sb.AppendLine( $"\t\tstatic std::unordered_map<HashedString, {returnType}> sColors = {{" );
-        foreach (var color in mCfg.category_colors) {
-
-            sb.AppendLine( $"\t\t\t{{ HashString( \"{color.Key}\" ), {{ {color.Value.HexToVector4()} }} }}," );
-
-        }
-
-        sb.AppendLine( "\t\t};" );
-        sb.AppendLine( $"\t\tauto it = sColors.find( HashString({variableName}) );" );
-        sb.AppendLine( $"\t\treturn it != sColors.end( ) ? it->second : {returnType}( 1, 1, 1, 1 );" );
-        sb.AppendLine( "\t}" );
-        sb.AppendLine( $"}} // namespace {namespaceName}" );
-
-    }
-
-    private void generate_category_icon_getter( StringBuilder sb ) {
-
-        string namespaceName = mCfg.GetTemplate( "get_category_icon_namespace" );
-        sb.AppendLine( $"namespace {namespaceName} {{\n" );
-
-        string variableName = "category";
-        string returnType = mCfg.GetTemplate( "get_category_icon_return" );
-        string signature = mCfg.GetTemplate( "get_category_icon_signature" ).FormatWith( "VariableName", variableName );
-        sb.AppendLine( $"\tinline {returnType} {signature} {{" );
-        sb.AppendLine( $"\t\tstatic std::unordered_map<HashedString, {returnType}> sIcons = {{" );
-        foreach (var icon in mCfg.category_icons) {
-
-            sb.AppendLine( $"\t\t\t{{ HashString( \"{icon.Key}\" ), {{ {icon.Value} }} }}," );
-
-        }
-
-        sb.AppendLine( "\t\t};" );
-        sb.AppendLine( $"\t\tauto it = sIcons.find( HashString({variableName}) );" );
-        sb.AppendLine( $"\t\treturn it != sIcons.end( ) ? it->second : {returnType}( );" );
-        sb.AppendLine( "\t}" );
-        sb.AppendLine( $"}} // namespace {namespaceName}" );
 
     }
 

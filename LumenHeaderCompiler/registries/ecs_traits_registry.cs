@@ -5,13 +5,13 @@ using System.Text;
 
 namespace lhc;
 
-internal enum ETraitType {
+internal enum EEcsTraitType {
     ParseName,
     DisplayName,
     CategoryName
 }
 
-internal class TraitConfig {
+internal class EcsTraitConfig {
     public string mToken { get; set; } = "";
     public string mBlueprintName { get; set; } = "";
 }
@@ -19,35 +19,36 @@ internal class TraitConfig {
 internal class EcsTraitsRegistry : IRegistry {
 
     private readonly ConfigFile mCfg;
-    private readonly static Dictionary<ETraitType, TraitConfig> sTraitToConfig = new( )
-    {
-        {
-            ETraitType.ParseName, new TraitConfig
-            {
-                mToken = "{ParseNameTraits}",
-                mBlueprintName = "ecs_trait_parse_name"
-            }
-        },
-        {
-            ETraitType.DisplayName, new TraitConfig
-            {
-                mToken = "{DisplayNameTraits}",
-                mBlueprintName = "ecs_trait_display_name"
-            }
-        },
-        {
-            ETraitType.CategoryName, new TraitConfig
-            {
-                mToken = "{CategoryNameTraits}",
-                mBlueprintName = "ecs_trait_category_name"
-            }
-        }
-    };
+    private readonly Dictionary<EEcsTraitType, EcsTraitConfig> mTraitToConfig;
     public EcsTraitsRegistry( ConfigFile cfg ) {
         mCfg = cfg;
+        mTraitToConfig = new( )
+            {
+                {
+                EEcsTraitType.ParseName, new EcsTraitConfig
+                {
+                    mToken = "{ParseNameTraits}",
+                    mBlueprintName = "ecs_trait_parse_name"
+                }
+            },
+            {
+                EEcsTraitType.DisplayName, new EcsTraitConfig
+                {
+                    mToken = "{DisplayNameTraits}",
+                    mBlueprintName = "ecs_trait_display_name"
+                }
+            },
+            {
+                EEcsTraitType.CategoryName, new EcsTraitConfig
+                {
+                    mToken = "{CategoryNameTraits}",
+                    mBlueprintName = "ecs_trait_category_name"
+                }
+            }
+        };
     }
-    private TraitConfig get_config(ETraitType type) {
-        if(sTraitToConfig.TryGetValue( type, out var val ))
+    private EcsTraitConfig get_config(EEcsTraitType type) {
+        if(mTraitToConfig.TryGetValue( type, out var val ))
             return val;
         throw new ArgumentException( $"Missing config for trait: {type}" );
     }
@@ -64,10 +65,10 @@ internal class EcsTraitsRegistry : IRegistry {
         string preamble = mCfg.ResolveFilePreamble( combinedPath );
         sb.Append( preamble );
 
-        string baseFileBlueprint = string.Join( '\n', mCfg.GetBlueprint( "ecs_traits_basefile" ) );
+        string baseFileBlueprint = mCfg.GetBlueprint( "ecs_traits_basefile", "\n" );
 
         string result = baseFileBlueprint;
-        foreach (var (traitType, config) in sTraitToConfig) {
+        foreach (var (traitType, config) in mTraitToConfig) {
             result = inject_trait_type( config, result, classInfos );
         }
 
@@ -78,7 +79,7 @@ internal class EcsTraitsRegistry : IRegistry {
 
     }
 
-    private string inject_trait_type( TraitConfig cfg, string baseStr, List<ClassGeneratedInfo> classInfos ) {
+    private string inject_trait_type( EcsTraitConfig cfg, string baseStr, List<ClassGeneratedInfo> classInfos ) {
 
         int index = baseStr.FindTokenIndex( "ecs_traits_basefile", cfg.mToken );
 
@@ -87,7 +88,7 @@ internal class EcsTraitsRegistry : IRegistry {
 
         string alignment = baseStr.CalculateIndent( index );
 
-        string parseNameTrait = string.Join( '\n', mCfg.GetBlueprint( cfg.mBlueprintName ) );
+        string parseNameTrait = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
         StringBuilder sb = new( );
         for (int i = 0; i < classInfos.Count; i++) {
 

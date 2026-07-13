@@ -11,7 +11,7 @@ internal static class ParseHelper {
         StringBuilder sb = new( );
 
         string varName = cfg.GetTemplate( "parse_fn_var" );
-        string parseFn = string.Join( '\n', cfg.GetBlueprint( "parse_fn" ) ).FormatWith( new( ) {
+        string parseFn = cfg.GetBlueprint( "parse_fn", "\n" ).FormatWith( new( ) {
             { "ClassName", info.mTypeName },
             { "Var", varName }
         } );
@@ -45,10 +45,9 @@ internal static class ParseHelper {
             string reader = cfg.TypeToReader( field.mType ) ??
                 throw new Exception( $"Unknown type: '{field.mType}' in {info.mTypeName}.{field.mName}" );
 
-            List<string> template = i == 0 ? cfg.GetBlueprint( "parse_fn_field_first" ) : cfg.GetBlueprint( "parse_fn_field_next" );
-            string mergedTemplate = string.Join( '\n', template );
+            string blueprint = i == 0 ? cfg.GetBlueprint( "parse_fn_field_first", "\n" ) : cfg.GetBlueprint( "parse_fn_field_next", "\n" );
 
-            string formattedBlock = mergedTemplate.FormatWith( new( )
+            string formattedBlock = blueprint.FormatWith( new( )
                     {
                         { "FieldName", field.mName },
                         { "Var", varName },
@@ -87,7 +86,7 @@ internal static class ParseHelper {
         string preamble = cfg.ResolveFilePreamble( null, new[] { outProps.finalize_path }.Concat( relativeIncludes ) );
         sb.AppendLine( preamble );
 
-        string parseRegisterFn = string.Join( '\n', cfg.GetBlueprint( "parse_fn_register" ) );
+        string parseRegisterFn = cfg.GetBlueprint( "parse_fn_register", "\n" );
         int index = parseRegisterFn.IndexOf( "{Fields}" );
 
         if (index == -1) throw new Exception( $"Couldn't find Fields parameter in parse_register_function" );
@@ -110,7 +109,7 @@ internal static class ParseHelper {
         string preFields = parseRegisterFn.Substring( 0, index );
         string postFields = parseRegisterFn.Substring( "{Fields}".Length + index );
 
-        string registerField = string.Join( "\n", cfg.GetBlueprint( "parse_fn_register_field" ) );
+        string registerField = cfg.GetBlueprint( "parse_fn_register_field", "\n");
 
         StringBuilder registrySb = new( );
         for (int i = 0; i < classInfos.Count; i++) {
