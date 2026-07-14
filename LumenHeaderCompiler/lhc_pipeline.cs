@@ -14,7 +14,7 @@ internal record ClassGeneratedInfo(
 internal class LhcPipeline {
 
     private readonly ConfigFile mCfg;
-    public static string mRootDir { get; private set; }
+    public static string mRootDir { get; private set; } = new( "" );
 
     private List<ClassGeneratedInfo> mClassInfos = new( );
     private readonly Dictionary<string, IRegistry> mRegistries = new( );
@@ -27,9 +27,10 @@ internal class LhcPipeline {
         mRegistries.Add( "io_registry", new IoRegistry( mCfg ) );
         mRegistries.Add( "editor_registry", new EditorRegistry( mCfg ) );
         mRegistries.Add( "ecs_traits_registry", new EcsTraitsRegistry( mCfg ) );
+        mRegistries.Add( "editor_traits_registry", new EditorTraitsRegistry( mCfg ) );
 
     }
-
+    
     public void HandleFile( string sourceFile, List<ClassInfo> classInfos ) {
 
         if (!File.Exists( sourceFile )) { throw new Exception( $"File {sourceFile} doesn't exist" ); }
@@ -64,28 +65,7 @@ internal class LhcPipeline {
                 else throw new Exception( $"Unsupported registry type: '{output.registry_type}'" );
 
             }
-            //EditorRegistry.GenerateEditorFn( generatedInfo );
 
-            /*
-            GenerateNameGetterArgs args = new( );
-            args.mSignature = mCfg.GetTemplate( "get_parse_name_signature" );
-            args.mNamespace = mCfg.GetTemplate( "get_parse_name_namespace" );
-            args.mReturnType = mCfg.GetTemplate( "get_parse_name_return" );
-            args.mReturnVal = info.ResolveParseName( );
-            generate_name_getter_fn( sb, info, args );
-
-            args.mSignature = mCfg.GetTemplate( "get_display_name_signature" );
-            args.mNamespace = mCfg.GetTemplate( "get_display_name_namespace" );
-            args.mReturnType = mCfg.GetTemplate( "get_display_name_return" );
-            args.mReturnVal = info.ResolveDisplayName( );
-            generate_name_getter_fn( sb, info, args );
-
-            args.mSignature = mCfg.GetTemplate( "get_category_name_signature" );
-            args.mNamespace = mCfg.GetTemplate( "get_category_name_namespace" );
-            args.mReturnType = mCfg.GetTemplate( "get_category_name_return" );
-            args.mReturnVal = info.mArgs.mCategoryName ?? mCfg.GetDefault( "category" );
-            generate_name_getter_fn( sb, info, args );
-           */
         }
 
     }
@@ -102,38 +82,6 @@ internal class LhcPipeline {
             else throw new Exception( $"Unsupported registry type: '{output.registry_type}'" );
 
         }
-
-    }
-
-    private struct GenerateNameGetterArgs {
-
-        public string mNamespace;
-        public string mReturnType;
-        public string mSignature;
-        public string mReturnVal;
-
-    }
-
-    //private ClassGeneratedInfo register_class_metadata( ClassInfo info, string sourceFile, string generatedPath ) {
-
-
-
-    //}
-
-    private void generate_name_getter_fn( StringBuilder sb, ClassInfo info, GenerateNameGetterArgs args ) {
-
-        sb.AppendLine( $"namespace {args.mNamespace}" + " {\n" );
-        sb.AppendLine( "\ttemplate<>" );
-        sb.AppendLine(
-            "\tinline " +
-            args.mReturnType +
-            " " +
-            args.mSignature.FormatWith( "ClassName", info.mTypeName ) +
-            " {"
-            );
-        sb.AppendLine( $"\t\treturn \"{args.mReturnVal}\";" );
-        sb.AppendLine( "\t}\n" );
-        sb.AppendLine( "} " + $"// namespace {args.mNamespace}" );
 
     }
 

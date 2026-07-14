@@ -5,12 +5,6 @@ using System.Text;
 
 namespace lhc;
 
-internal enum EEcsTraitType {
-    ParseName,
-    DisplayName,
-    CategoryName
-}
-
 internal class EcsTraitConfig {
     public string mToken { get; set; } = "";
     public string mBlueprintName { get; set; } = "";
@@ -19,38 +13,33 @@ internal class EcsTraitConfig {
 internal class EcsTraitsRegistry : IRegistry {
 
     private readonly ConfigFile mCfg;
-    private readonly Dictionary<EEcsTraitType, EcsTraitConfig> mTraitToConfig;
+    private readonly List<EcsTraitConfig> mTraitToConfig;
     public EcsTraitsRegistry( ConfigFile cfg ) {
         mCfg = cfg;
         mTraitToConfig = new( )
+        {
             {
-                {
-                EEcsTraitType.ParseName, new EcsTraitConfig
+                new EcsTraitConfig
                 {
                     mToken = "{ParseNameTraits}",
                     mBlueprintName = "ecs_trait_parse_name"
                 }
             },
             {
-                EEcsTraitType.DisplayName, new EcsTraitConfig
+                new EcsTraitConfig
                 {
                     mToken = "{DisplayNameTraits}",
                     mBlueprintName = "ecs_trait_display_name"
                 }
             },
             {
-                EEcsTraitType.CategoryName, new EcsTraitConfig
+                new EcsTraitConfig
                 {
                     mToken = "{CategoryNameTraits}",
                     mBlueprintName = "ecs_trait_category_name"
                 }
             }
         };
-    }
-    private EcsTraitConfig get_config(EEcsTraitType type) {
-        if(mTraitToConfig.TryGetValue( type, out var val ))
-            return val;
-        throw new ArgumentException( $"Missing config for trait: {type}" );
     }
 
     public void HandleFile( string sourceFile, ClassInfo info ) {
@@ -68,14 +57,14 @@ internal class EcsTraitsRegistry : IRegistry {
         string baseFileBlueprint = mCfg.GetBlueprint( "ecs_traits_basefile", "\n" );
 
         string result = baseFileBlueprint;
-        foreach (var (traitType, config) in mTraitToConfig) {
+        foreach (var config in mTraitToConfig) {
             result = inject_trait_type( config, result, classInfos );
         }
 
         sb.Append( result );
 
         string generatedPath = combinedPath.MakeGeneratedPath( "hpp" );
-        File.WriteAllText( generatedPath, sb.ToString() );
+        File.WriteAllText( generatedPath, sb.ToString( ) );
 
     }
 
@@ -92,7 +81,7 @@ internal class EcsTraitsRegistry : IRegistry {
         StringBuilder sb = new( );
         for (int i = 0; i < classInfos.Count; i++) {
 
-            ClassGeneratedInfo info = classInfos[i];
+            var info = classInfos[i];
 
             var formats = new Dictionary<string, string>( )
             {
