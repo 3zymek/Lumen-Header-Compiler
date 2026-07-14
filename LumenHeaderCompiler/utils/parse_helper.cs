@@ -8,37 +8,16 @@ internal static class ParseHelper {
 
     public static string BuildParseFunctions( this ClassInfo info, string sourceFile, ConfigFile cfg ) {
 
-        StringBuilder sb = new( );
-
         string varName = cfg.GetTemplate( "parse_fn_var" );
         string parseFn = cfg.GetBlueprint( "parse_fn", "\n" ).FormatWith( new( ) {
             { "ClassName", info.mTypeName },
             { "Var", varName }
         } );
 
-        int index = parseFn.IndexOf( "{Fields}" );
+        int index = parseFn.FindTokenIndex( "parse_function", "{Fields}" );
+        string alignment = parseFn.CalculateIndent( index );
 
-        if (index == -1) throw new ArgumentNullException( $"Couldn't find Fields parameter in parse_function" );
-
-        string alignment = new( "" );
-        for (int i = index - 1; i >= 0; i--) {
-
-            char c = parseFn[i];
-
-            if (c == '\n' || c == '\r')
-                break;
-
-            if (char.IsWhiteSpace( c )) {
-                alignment = c + alignment;
-            }
-            else break;
-
-        }
-
-        string preFields = parseFn.Substring( 0, index );
-        string postFields = parseFn.Substring( index + "{Fields}".Length );
-
-        StringBuilder sbStatements = new( );
+        StringBuilder sb = new( );
         for (int i = 0; i < info.mFields.Count; i++) {
 
             FieldInfo field = info.mFields[i];
@@ -47,92 +26,60 @@ internal static class ParseHelper {
 
             string blueprint = i == 0 ? cfg.GetBlueprint( "parse_fn_field_first", "\n" ) : cfg.GetBlueprint( "parse_fn_field_next", "\n" );
 
-            string formattedBlock = blueprint.FormatWith( new( )
-                    {
-                        { "FieldName", field.mName },
-                        { "Var", varName },
-                        { "Reader", reader },
-                    }
-            );
+            var formats = new Dictionary<string, string>( ) {
+                { "FieldName", field.mName },
+                { "Var", varName },
+                { "Reader", reader },
+            };
+            string formattedBlock = blueprint.FormatWith( formats );
 
             if (i > 0)
-                sbStatements.Append( alignment );
+                sb.Append( alignment );
 
             formattedBlock = formattedBlock.Replace( "\n", "\n" + alignment );
-            sbStatements.AppendLine( formattedBlock );
+            sb.AppendLine( formattedBlock );
 
         }
 
-        string result = preFields + sbStatements.ToString( ) + postFields;
-        sb.AppendLine( result );
+        parseFn = parseFn.Replace( "{Fields}", sb.ToString( ) );
 
-        return sb.ToString( );
+        return parseFn;
 
     }
 
-    public static string FinalizeParseRegistry( string rootDir, List<ClassGeneratedInfo> classInfos, OutputProperties outProps, ConfigFile cfg ) {
+    public static string FinalizeParseRegistry( string finalizePath, List<ClassGeneratedInfo> classInfos, OutputProperties outProps, ConfigFile cfg ) {
 
-        string fullFilePath = Path.Combine( rootDir, outProps.finalize_path );
-
-        if (!File.Exists( fullFilePath )) throw new Exception( $"{outProps.registry_type} output path file not found: {fullFilePath}" );
+        finalizePath.AssertFile( );
 
         var relativeIncludes = classInfos
             .Select( v => v.mGeneratedFilepath )
             .Distinct( )
-            .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( fullFilePath )!, absPath ) );
+            .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( finalizePath )!, absPath ) );
 
+        string functionTemplate = cfg.GetBlueprint( "parse_fn_register", "\n" );
+        functionTemplate = functionTemplate.Replace( "{Signature}", cfg.GetTemplate( "parse_fn_register_signature" ) );
+
+        int index = functionTemplate.FindTokenIndex( "parse_fn_register", "{Fields}" );
+        string alignment = functionTemplate.CalculateIndent( index );
+
+        string fieldTemplate = cfg.GetBlueprint( "parse_fn_register_field", "\n" );
         StringBuilder sb = new( );
-
-        string preamble = cfg.ResolveFilePreamble( null, new[] { outProps.finalize_path }.Concat( relativeIncludes ) );
-        sb.AppendLine( preamble );
-
-        string parseRegisterFn = cfg.GetBlueprint( "parse_fn_register", "\n" );
-        int index = parseRegisterFn.IndexOf( "{Fields}" );
-
-        if (index == -1) throw new Exception( $"Couldn't find Fields parameter in parse_register_function" );
-
-        string alignment = new( "" );
-        for (int i = index - 1; i >= 0; i--) {
-
-            char c = parseRegisterFn[i];
-
-            if (c == '\n' || c == '\r')
-                break;
-
-            if (char.IsWhiteSpace( c )) {
-                alignment = c + alignment;
-            }
-            else break;
-
-        }
-
-        string preFields = parseRegisterFn.Substring( 0, index );
-        string postFields = parseRegisterFn.Substring( "{Fields}".Length + index );
-
-        string registerField = cfg.GetBlueprint( "parse_fn_register_field", "\n");
-
-        StringBuilder registrySb = new( );
         for (int i = 0; i < classInfos.Count; i++) {
 
-            ClassGeneratedInfo info = classInfos[i];
+            var info = classInfos[i];
+            var formats = new Dictionary<string, string>( )
+            {
+                { "ParseName", info.mInfo.ResolveParseName() },
+                { "ParseFunctionName", info.mParseFnName }
+            };
 
-            string formattedField = registerField.FormatWith( new( )
-                {
-                    { "ParseName", info.mInfo.ResolveParseName() },
-                    { "ParseFunctionName", info.mParseFnName }
-                } );
-
-            if (i > 0)
-                registrySb.Append( alignment );
-            registrySb.AppendLine( formattedField );
+            if (i != 0)
+                sb.Append( alignment );
+            sb.AppendLine( fieldTemplate.FormatWith( formats ) );
 
         }
 
-        sb.Append( preFields );
-        sb.Append( registrySb.ToString( ) );
-        sb.Append( postFields );
-
-        return sb.ToString( );
+        return functionTemplate.Replace( "{Fields}", sb.ToString( ) );
 
     }
 

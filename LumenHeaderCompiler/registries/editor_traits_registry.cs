@@ -87,8 +87,8 @@ internal class EditorTraitsRegistry : IRegistry {
         bool firstLoop = true;
         foreach (var (category, icon) in icons) {
             var formats = new Dictionary<string, string>( ) {
-                { "CategoryName", $"\"{category}\"" },
-                { "Icon", $"{icon}" }
+                { "CategoryName", category },
+                { "Icon", icon }
             };
 
             if (firstLoop) {

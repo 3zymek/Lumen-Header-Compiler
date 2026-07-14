@@ -81,6 +81,16 @@ internal static class NamingHelpers {
         return alignment;
     }
 
+    public static void AssertFile( this string path, string? failMsg = null ) {
+        if(!File.Exists( path ))
+            throw new FileNotFoundException( failMsg ?? $"Required file \"{path}\" not found" );
+    }
+
+    public static void AssertDirectory( this string path, string? failMsg = null ) {
+        if (!Directory.Exists( path ))
+            throw new FileNotFoundException( failMsg ?? $"Required directory \"{path}\" not found" );
+    }
+
     public static string HexToVector4( this string hex ) {
         hex = hex.TrimStart( '#' );
         float r = Convert.ToInt32( hex[0..2], 16 ) / 255.0f;

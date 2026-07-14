@@ -147,7 +147,7 @@ internal class EditorRegistry : IRegistry {
 
             if (i != 0)
                 sb.Append( alignment );
-            sb.Append( formatted );
+            sb.AppendLine( formatted );
 
         }
 
