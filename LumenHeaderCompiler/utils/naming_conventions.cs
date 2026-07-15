@@ -1,5 +1,6 @@
 
 using System.Globalization;
+using System.Text;
 
 namespace lhc;
 
@@ -90,6 +91,16 @@ internal static class NamingHelpers {
         if (!Directory.Exists( path ))
             throw new FileNotFoundException( failMsg ?? $"Required directory \"{path}\" not found" );
     }
+
+    public static string InjectToNamespace( this string baseStr, string namespaceName ) {
+
+        StringBuilder sb = new( );
+        sb.AppendLine( $"namespace {namespaceName} {{" );
+        sb.AppendLine( "\t" + baseStr.Replace( "\n", "\n\t" ));
+        sb.AppendLine( $"}} // namespace {namespaceName}" );
+        return sb.ToString( );
+
+    } 
 
     public static string HexToVector4( this string hex ) {
         hex = hex.TrimStart( '#' );

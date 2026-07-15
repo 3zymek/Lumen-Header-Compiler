@@ -7,8 +7,10 @@ namespace lhc;
 internal class IoRegistry : IRegistry {
 
     private readonly ConfigFile mCfg;
+    private ParseHelper mParseHelper;
     public IoRegistry( ConfigFile cfg ) {
         mCfg = cfg;
+        mParseHelper = new ParseHelper( mCfg );
     }
 
     public void HandleFile( string sourceFile, ClassInfo info ) {
@@ -17,7 +19,7 @@ internal class IoRegistry : IRegistry {
         string preamble = mCfg.ResolveFilePreamble( sourceFile );
         sb.AppendLine( preamble );
 
-        string parseFunctions = info.BuildParseFunctions( sourceFile, mCfg );
+        string parseFunctions = mParseHelper.BuildParseFunction( info, sourceFile );
         sb.AppendLine( parseFunctions );
 
 
@@ -40,11 +42,12 @@ internal class IoRegistry : IRegistry {
 
         string combinedPath = Path.Combine( rootDir, outProps.finalize_path );
 
-        finalize_header_file( combinedPath, classInfos, outProps );
+        finalize_header_file( combinedPath );
+        finalize_source_file( combinedPath, classInfos, outProps );
 
     }
 
-    private void finalize_header_file( string finalizePath, List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
+    private void finalize_source_file( string finalizePath, List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
 
         finalizePath.AssertFile( );
 
@@ -55,21 +58,23 @@ internal class IoRegistry : IRegistry {
 
         StringBuilder sb = new( );
         sb.Append( mCfg.ResolveFilePreamble( finalizePath.MakeGeneratedPath( "hpp" ), relativeIncludes ) );
-        sb.AppendLine( ParseHelper.FinalizeParseRegistry( finalizePath, classInfos, outProps, mCfg ) );
+        sb.AppendLine( mParseHelper.MakeParseRegisteryDefinition( finalizePath, classInfos, outProps ) );
 
         string generatedPath = finalizePath.MakeGeneratedPath( "cpp" );
         File.WriteAllText( generatedPath, sb.ToString( ) );
 
-
     }
 
-    private void finalize_source_file( string finalizePath, List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
+    private void finalize_header_file( string finalizePath ) {
 
         finalizePath.AssertFile( );
 
         StringBuilder sb = new( );
         sb.Append( mCfg.ResolveFilePreamble( finalizePath ) );
-        sb.AppendLine( );
+        sb.AppendLine( mParseHelper.MakeParseRegisteryDeclaration( finalizePath ) );
+
+        string generatedPath = finalizePath.MakeGeneratedPath( "hpp" );
+        File.WriteAllText( generatedPath, sb.ToString( ) );
 
     }
 

@@ -18,7 +18,7 @@ internal class EditorRegistry : IRegistry {
 
         mCfg = cfg;
 
-        string fnNamespace = mCfg.GetTemplate( "editor_fn_namespace" );
+        string fnNamespace = mCfg.GetTemplate( "editor_namespace" );
         if (fnNamespace.Trim( ) != "")
             mFunctionNamespace = fnNamespace;
 
@@ -97,15 +97,7 @@ internal class EditorRegistry : IRegistry {
 
     public void Finalize( string rootDir, List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
 
-        string outputPath = new( "" );
-        foreach (var entry in mCfg.outputs) {
-            if (entry.registry_type == "editor_registry") {
-                outputPath = entry.finalize_path;
-                break;
-            }
-        }
-
-        finalize_files( Path.Combine( LhcPipeline.mRootDir, outputPath ) );
+        finalize_files( Path.Combine( rootDir, outProps.finalize_path ) );
 
     }
 
@@ -123,9 +115,6 @@ internal class EditorRegistry : IRegistry {
 
     private string inject_register_fields( string blueprint, List<ClassInfo> classInfos ) {
         int index = blueprint.FindTokenIndex( "editor_fn_register", "{Fields}" );
-
-        string preFields = blueprint.Substring( 0, index );
-        string postFields = blueprint.Substring( index + "{Fields}".Length );
 
         string alignment = blueprint.CalculateIndent( index );
 
@@ -151,7 +140,7 @@ internal class EditorRegistry : IRegistry {
 
         }
 
-        string result = preFields + sb.ToString( ) + postFields;
+        string result = blueprint.Replace( "{Fields}", sb.ToString( ) );
         return result;
     }
 
@@ -166,7 +155,7 @@ internal class EditorRegistry : IRegistry {
 
         string registerSource = inject_register_fields( editorRegister, mClasses );
         if (mFunctionNamespace != null)
-            registerSource = indent + registerSource.Replace( "\n", $"\n{indent}");
+            registerSource = indent + registerSource.Replace( "\n", $"\n{indent}" );
         mSourceFile.AppendLine( registerSource );
 
         if (mFunctionNamespace != null) {
