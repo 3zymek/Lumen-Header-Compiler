@@ -56,9 +56,6 @@ internal class ParseHelper {
 
         string result = parseFn.Replace( "{Fields}", fieldsSb.ToString( ) );
 
-        if(mFunctionNamespace != null)
-            result = result.InjectToNamespace( mFunctionNamespace );
-
         return result;
 
     }
@@ -113,7 +110,7 @@ internal class ParseHelper {
 
         if (mFunctionNamespace != null)
             signature = signature.InjectToNamespace( mFunctionNamespace );
-
+        
         return signature;
 
     }

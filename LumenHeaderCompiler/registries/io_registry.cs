@@ -15,23 +15,24 @@ internal class IoRegistry : IRegistry {
 
     public void HandleFile( string sourceFile, ClassInfo info ) {
 
+        string blueprintName = "io_registry_instance_basefile";
+        string baseTemplate = mCfg.GetBlueprint( blueprintName, "\n" );
+
+        string parseFn = mParseHelper.BuildParseFunction( info, sourceFile );
+        int parseIndex = baseTemplate.FindTokenIndex( blueprintName, "{ParseFunction}" );
+        string parseFnAlignment = baseTemplate.CalculateIndent( parseIndex );
+        parseFn = parseFn.Replace( "\n", $"\n{parseFnAlignment}" );
+        baseTemplate = baseTemplate.Replace( "{ParseFunction}", parseFn );
+
         StringBuilder sb = new( );
         string preamble = mCfg.ResolveFilePreamble( sourceFile );
         sb.AppendLine( preamble );
-
-        string parseFunctions = mParseHelper.BuildParseFunction( info, sourceFile );
-        sb.AppendLine( parseFunctions );
-
-
-        /*
-         * string serializeFunctions = info.BuildSerializeFunctions( sourceFile, mCfg );
-         * sb.AppendLine( serializeFunctions );
-         */
+        sb.AppendLine( baseTemplate );
 
         /*
             TODO: create ParseHelper and SerializeHelper and use IoRegistry as bridge between parsing and serializing
             one file for both functions AND ADD COMPONENT NAME GETTERS FROM LhcPipeline ~03.07.2026
-        */
+         */
 
         string generatedPath = sourceFile.MakeGeneratedPath( "hpp" );
         File.WriteAllText( generatedPath, sb.ToString( ) );
