@@ -58,7 +58,7 @@ internal class IoRegistry : IRegistry {
             .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( finalizePath )!, absPath ) );
 
         StringBuilder sb = new( );
-        sb.Append( mCfg.ResolveFilePreamble( finalizePath.MakeGeneratedPath( "hpp" ), relativeIncludes ) );
+        sb.Append( mCfg.ResolveFilePreamble( finalizePath.MakeGeneratedPath( "hpp" ), false, relativeIncludes ) );
         sb.AppendLine( mParseHelper.MakeParseRegisteryDefinition( finalizePath, classInfos, outProps ) );
 
         string generatedPath = finalizePath.MakeGeneratedPath( "cpp" );

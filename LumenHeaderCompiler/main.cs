@@ -26,24 +26,29 @@ internal class Program {
 
     static void Main( string[] args ) {
 
-        string rootDir = args[0] ?? throw new Exception( "Invalid dotnet argument, missing root dir" );
-        var files = Directory.GetFiles( rootDir, "*.hpp", SearchOption.AllDirectories )
-            .Where( f => !f.Contains( Path.Combine( rootDir, "external" ) ) )
-            .Where( f => !f.Contains( "internal_assets" ) )
-            .Where( f => !f.EndsWith( ".generated.hpp" ) );
-
-        JsonSerializerOptions options = new( ) {
+        JsonSerializerOptions serializerOptions = new( ) {
             PropertyNameCaseInsensitive = true
         };
 
-        string jsonContent = File.ReadAllText( $"{Path.Combine( AppContext.BaseDirectory, "config.json" )}" );
-        ConfigFile config = JsonSerializer.Deserialize<ConfigFile>( jsonContent, options ) ??
-           throw new Exception( $"Failed to deserialize {Path.Combine( AppContext.BaseDirectory, "config.json" )}" );
+        ConfigFile          baseConfig      = ConfigLoader.LoadFromFile<ConfigFile>( "config.json", serializerOptions );
+        TokenizerConfigFile tokenizerConfig = ConfigLoader.LoadFromFile<TokenizerConfigFile>( "TokenizerConfig.json", serializerOptions );
 
-        Tokenizer tokenizer = new( );
+        Tokenizer tokenizer = new( tokenizerConfig );
         Parser parser = new( tokenizer );
 
-        LhcPipeline lhcPipeline = new( rootDir, config );
+        string rootDir = args[0] ?? throw new Exception( "Invalid dotnet argument, missing root dir" );
+        var files = Directory.GetFiles( rootDir, "*.hpp", SearchOption.AllDirectories )
+            .Where( f => !f.Contains( Path.Combine( rootDir, "External" ) ) )
+            .Where( f => !f.EndsWith( ".generated.hpp" ) );
+
+        tokenizer.Tokenize( Path.Combine( AppContext.BaseDirectory, "test.hpp" ) );
+        foreach(var token in tokenizer.mTokens) {
+            Console.WriteLine( $"{token.mValue} = {token.mType}" );
+        }
+
+
+       /*
+        LhcPipeline lhcPipeline = new( rootDir, baseConfig );
 
         foreach (var file in files) {
 
@@ -58,6 +63,7 @@ internal class Program {
         }
 
         lhcPipeline.Finalize( );
+       */
 
     }
 

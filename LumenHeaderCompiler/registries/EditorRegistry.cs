@@ -163,7 +163,7 @@ internal class EditorRegistry : IRegistry {
             mSourceFile.AppendLine( $"}} // namespace {mFunctionNamespace}" );
         }
 
-        string preamble = mCfg.ResolveFilePreamble( finalizePath, mExtraIncludes );
+        string preamble = mCfg.ResolveFilePreamble( finalizePath, true, mExtraIncludes );
         string result = $"{preamble}\n{mSourceFile.ToString( )}";
 
         string generatedSourcePath = finalizePath.MakeGeneratedPath( "cpp" );
