@@ -1,6 +1,6 @@
 <div align="center">
 
-![logo](https://raw.githubusercontent.com/3zymek/LumEngine/main/LumEngine/internal_assets/branding/lumengine_medium2.png)
+<img width="700" height="218" alt="lumengine_medium2" src="https://github.com/user-attachments/assets/f0eb7356-7c7f-4293-bce2-b7c9ac7e802b" />
 
 # Lumen Header Compiler (LHC)
 
