@@ -28,27 +28,8 @@ internal static class ConfigFileExtensions {
             : throw new KeyNotFoundException( $"Missing defaults key '{key}' in config.json" );
     }
 
-    public static string? TypeToInspector( this ConfigFile cfg, string type ) {
-        return cfg.types.TryGetValue( type, out var val)
-            ? string.Join('\n', val.inspector)
-            : throw new KeyNotFoundException( $"Unknown type '{type}' in config.json" );
-    }
-
-    public static string TypeToDroppableInspector( this ConfigFile cfg, string type ) {
-        if (!cfg.types.TryGetValue( type, out var val )) {
-            throw new KeyNotFoundException( $"Unknown type '{type}' in config.json" );
-        }
-
-        var target = val.droppable_inspector ?? val.inspector;
-        if (target == null) {
-            throw new KeyNotFoundException( $"Type '{type}' has no inspector code defined in config.json" );
-        }
-
-        return string.Join( '\n', target );
-    }
-
     public static string? TypeToReader( this ConfigFile cfg, string type ) {
-        if (cfg.types.TryGetValue( type, out var value )) {
+        if (cfg.mTypesCfg.types.TryGetValue( type, out var value )) {
             return value.reader;
         }
         return null;
@@ -72,6 +53,25 @@ internal static class ConfigFileExtensions {
 
         return sb.ToString( );
 
+    }
+
+    public static string? TypeToInspector( this TypesConfigFile cfg, string type ) {
+        return cfg.types.TryGetValue( type, out var val )
+            ? string.Join( '\n', val.inspector )
+            : throw new KeyNotFoundException( $"Unknown type '{type}' in config.json" );
+    }
+
+    public static string TypeToDroppableInspector( this TypesConfigFile cfg, string type ) {
+        if (!cfg.types.TryGetValue( type, out var val )) {
+            throw new KeyNotFoundException( $"Unknown type '{type}' in config.json" );
+        }
+
+        var target = val.droppable_inspector ?? val.inspector;
+        if (target == null) {
+            throw new KeyNotFoundException( $"Type '{type}' has no inspector code defined in config.json" );
+        }
+
+        return string.Join( '\n', target );
     }
 
 }

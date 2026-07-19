@@ -27,30 +27,12 @@ internal record Token(
     string mFile
     );
 
-internal class TokenizerMacros {
-    public string class_macro { get; init; } = "";
-    public string property_macro { get; init; } = "";
-    public string function_macro { get; init; } = "";
-    public string generated_body_macro { get; init; } = "";
-    public string class_extensions_macro { get; init; } = "";
-
-    [JsonIgnore]
-    public List<string> mAll => [
-        class_macro,
-        property_macro,
-        function_macro,
-        generated_body_macro,
-        class_extensions_macro
-    ];
-
+internal class TokenizerConfigFile {
+    public required SupportedMacros macros { get; init; }
+    public required List<string> tokens_to_ignore { get; init; }
+    public required List<string> ends_with_to_ignore { get; init; }
+    public required List<string> starts_with_to_ignore { get; init; }
 }
-
-internal record TokenizerConfigFile(
-    TokenizerMacros macros,
-    List<string> tokens_to_ignore,
-    List<string> ends_with_to_ignore,
-    List<string> starts_with_to_ignore
-    );
 
 internal class Tokenizer {
 

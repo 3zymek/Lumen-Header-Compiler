@@ -1,14 +1,32 @@
-﻿namespace lhc;
+﻿using System.Text.Json.Serialization;
 
-internal struct QualifierArgs {
+namespace lhc;
 
-    public string? mDisplayName;
-    public string? mParseName;
-    public string? mCategoryName;
-    public string? mMinVal;
-    public string? mMaxVal;
-    public string? mDragSpeed;
-    public string? mDroppable;
+internal class ParserArguments {
+    public required string name { get; init; }
+    public required string assignment_operator { get; init; }
+
+    [JsonConverter( typeof( JsonStringEnumConverter ) )]
+    public required TokenType expected_token { get; init; }
+}
+
+internal class ParserConfigFile {
+    public required List<ParserArguments> property_args { get; init; }
+    public required List<ParserArguments> class_args { get; init; }
+
+}
+
+internal class QualifierArgs {
+
+    public Dictionary<string, string> mProperties = new( );
+
+    public string? mDisplayName => mProperties.GetValueOrDefault( "displayname" );
+    public string? mParseName => mProperties.GetValueOrDefault( "parsename" );
+    public string? mCategoryName => mProperties.GetValueOrDefault( "category" );
+    public string? mMinVal => mProperties.GetValueOrDefault( "minval" );
+    public string? mMaxVal => mProperties.GetValueOrDefault( "maxval" );
+    public string? mDragSpeed => mProperties.GetValueOrDefault( "dragspeed" );
+    public string? mDroppable => mProperties.GetValueOrDefault( "droppable" );
 
 };
 internal record FieldInfo( string mType, QualifierArgs mArgs, string mName );
@@ -17,23 +35,57 @@ internal record ClassInfo( string mTypeName, QualifierArgs mArgs, List<FieldInfo
 internal class Parser {
 
     public readonly List<ClassInfo> mClassInfos = new( );
+    private readonly ParserConfigFile mCfg;
 
     private List<Token> mTokens;
     private int mPosition = 0;
 
-    public Parser( Tokenizer tokenizer ) { 
-        mTokens = tokenizer.mTokens; 
+    public Parser( ParserConfigFile cfg, List<Token> tokens ) {
+
+        mTokens = tokens;
+        mCfg = cfg;
+
     }
 
-    private Token mCurrent => mTokens[mPosition];
-    private Token increment( ) => mTokens[mPosition++];
-    private Token preincrement( ) => mTokens[++mPosition];
+    public void Parse( ) {
+
+        mClassInfos.Clear( );
+        mPosition = 0;
+
+        while (mPosition < mTokens.Count) {
+
+            if (peek( ).mType == TokenType.Macro) {
+
+                if (peek( ).mValue == "LCLASS") {
+                    parse_class( );
+                }
+                else if (peek( ).mValue == "LPROPERTY") {
+                    parse_property( );
+                }
+
+            }
+            else advance( );
+
+        }
+
+    }
+    private Token peek( int offset = 0 ) => (mPosition + offset < mTokens.Count)
+        ? mTokens[mPosition + offset]
+        : throw new IndexOutOfRangeException( "Tried to peek beyond the end of the token stream." );
+
+    private Token advance( ) => mTokens[mPosition++];
 
     private Token expect( TokenType type ) {
-        if (type != mCurrent.mType) {
-            throw new LhcException( $"Expected {type} but got {mCurrent.mType}", mCurrent.mFile, mCurrent.mLine );
+        if (type != peek( ).mType) {
+            throw new LhcException( $"Expected \"{type}\" but got \"{peek( ).mType}\"", peek( ).mFile, peek( ).mLine );
         }
-        return increment( );
+        return advance( );
+    }
+    private Token expect( string value ) {
+        if (value != peek( ).mValue) {
+            throw new LhcException( $"Expected \"{value}\" but got \"{peek( ).mValue}\"", peek( ).mFile, peek( ).mLine );
+        }
+        return advance( );
     }
 
 
@@ -45,17 +97,17 @@ internal class Parser {
 
         string type = expect( TokenType.Identifier ).mValue;
 
-        if (mCurrent.mType == TokenType.LAngle) {
-            while (mCurrent.mType != TokenType.RAngle) {
-                increment( );
+        if (peek( ).mType == TokenType.LAngle) {
+            while (peek( ).mType != TokenType.RAngle) {
+                advance( );
             }
-            increment( );
+            advance( );
         }
 
-        while (mCurrent.mType == TokenType.Colon) {
-            increment( );
-            if (mCurrent.mType == TokenType.Colon)
-                increment( );
+        while (peek( ).mType == TokenType.Colon) {
+            advance( );
+            if (peek( ).mType == TokenType.Colon)
+                advance( );
             type += "::" + expect( TokenType.Identifier ).mValue;
         }
 
@@ -73,14 +125,14 @@ internal class Parser {
         expect( TokenType.RParen );
 
         if (mClassInfos.Count == 0)
-            throw new LhcException( $"LPROPERTY found before any LCLASS in {mCurrent}", mCurrent.mFile, mCurrent.mLine );
+            throw new LhcException( $"LPROPERTY found before any LCLASS in {peek( )}", peek( ).mFile, peek( ).mLine );
 
         string type = parse_type( );
         string name = parse_name( );
 
-        while (mCurrent.mType != TokenType.Semicolon)
-            increment( );
-        increment( );
+        while (peek( ).mType != TokenType.Semicolon)
+            advance( );
+        advance( );
 
         mClassInfos.Last( ).mFields.Add( new FieldInfo( type, args, name ) );
 
@@ -90,50 +142,23 @@ internal class Parser {
 
         QualifierArgs args = new( );
 
-        while (mCurrent.mType != TokenType.RParen) {
+        while (peek( ).mType != TokenType.RParen) {
 
-            if (mCurrent.mType == TokenType.Identifier) {
+            if (peek( ).mType == TokenType.Identifier) {
 
-                if (mCurrent.mValue.ToLower( ) == "displayname") {
+                var matchedProp = mCfg.property_args.FirstOrDefault( prop => peek( ).mValue.ToLower( ) == prop.name );
+                if (matchedProp != null) {
 
-                    increment( );
-                    expect( TokenType.Equals );
-                    args.mDisplayName = expect( TokenType.String ).mValue;
-
-                }
-                else if (mCurrent.mValue.ToLower( ) == "minval") {
-
-                    increment( );
-                    expect( TokenType.Equals );
-                    args.mMinVal = expect( TokenType.Number ).mValue;
+                    advance( );
+                    expect( matchedProp.assignment_operator );
+                    args.mProperties[matchedProp.name] = expect( matchedProp.expected_token ).mValue;
 
                 }
-                else if (mCurrent.mValue.ToLower( ) == "maxval") {
-
-                    increment( );
-                    expect( TokenType.Equals );
-                    args.mMaxVal = expect( TokenType.Number ).mValue;
-
-                }
-                else if (mCurrent.mValue.ToLower( ) == "dragspeed") {
-
-                    increment( );
-                    expect( TokenType.Equals );
-                    args.mDragSpeed = expect( TokenType.Number ).mValue;
-
-                }
-                else if (mCurrent.mValue.ToLower() == "droppable") {
-
-                    increment( );
-                    expect( TokenType.Equals );
-                    args.mDroppable = expect( TokenType.String ).mValue;
-
-                }
-                else increment( );
+                else advance( );
 
 
             }
-            else increment( );
+            else advance( );
 
         }
 
@@ -145,36 +170,22 @@ internal class Parser {
 
         QualifierArgs args = new( );
 
-        while (mCurrent.mType != TokenType.RParen) {
+        while (peek( ).mType != TokenType.RParen) {
 
-            if (mCurrent.mType == TokenType.Identifier) {
+            if (peek( ).mType == TokenType.Identifier) {
 
-                if (mCurrent.mValue.ToLower( ) == "displayname") {
-                    
-                    increment( );
-                    expect( TokenType.Equals );
-                    args.mDisplayName = expect( TokenType.String ).mValue;
-                    
-                }
-                else if(mCurrent.mValue.ToLower() == "parsename") {
+                var matchedArg = mCfg.class_args.FirstOrDefault( prop => peek( ).mValue.ToLower( ) == prop.name );
+                if(matchedArg != null) {
 
-                    increment( );
-                    expect( TokenType.Equals );
-                    args.mParseName = expect( TokenType.String ).mValue;
+                    advance( );
+                    expect( matchedArg.assignment_operator );
+                    args.mProperties[matchedArg.name] = expect( matchedArg.expected_token ).mValue;
 
                 }
-                else if(mCurrent.mValue.ToLower() == "category") {
-
-                    increment( );
-                    expect( TokenType.Equals );
-                    args.mCategoryName = expect( TokenType.String ).mValue;
-
-                }
-                else increment( );
-
+                else advance( );
 
             }
-            else increment( );
+            else advance( );
 
         }
 
@@ -195,29 +206,6 @@ internal class Parser {
         string name = expect( TokenType.Identifier ).mValue;
 
         mClassInfos.Add( new ClassInfo( name, args, new( ) ) );
-
-    }
-
-    public void Parse( ) {
-
-        mClassInfos.Clear( );
-        mPosition = 0;
-
-        while (mPosition < mTokens.Count) {
-
-            if (mCurrent.mType == TokenType.Macro) {
-
-                if (mCurrent.mValue == "LCLASS") {
-                    parse_class( );
-                }
-                else if (mCurrent.mValue == "LPROPERTY") {
-                    parse_property( );
-                }
-
-            }
-            else increment( );
-
-        }
 
     }
 

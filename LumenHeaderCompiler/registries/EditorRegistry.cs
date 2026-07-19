@@ -75,8 +75,8 @@ internal class EditorRegistry : IRegistry {
 
         string variableName = mCfg.GetTemplate( "editor_fn_var" );
         string? inspector = field.mArgs.mDroppable != null
-            ? mCfg.TypeToDroppableInspector( field.mType )
-            : mCfg.TypeToInspector( field.mType );
+            ? mCfg.mTypesCfg.TypeToDroppableInspector( field.mType )
+            : mCfg.mTypesCfg.TypeToInspector( field.mType );
 
         if (inspector == null)
             throw new Exception( $"Unknown type: '{field.mType}' in {field.mName}" );
