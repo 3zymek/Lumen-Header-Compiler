@@ -116,4 +116,14 @@ internal static class NamingHelpers {
         return $"{r.ToString( "F2", CultureInfo.InvariantCulture )}f, {g.ToString( "F2", CultureInfo.InvariantCulture )}f, {b.ToString( "F2", CultureInfo.InvariantCulture )}f, 1.0f";
     }
 
+    public static string ResolveParseFunctionName( this string rawName, ConfigFile cfg ) {
+        string ns = cfg.GetTemplate( "parsing_namespace" );
+        return string.IsNullOrEmpty( ns ) ? rawName : $"{ns}::{rawName}";
+    }
+
+    public static string ResolveEditorFunctionName( this string rawName, ConfigFile cfg ) {
+        string ns = cfg.GetTemplate( "editor_namespace" );
+        return string.IsNullOrEmpty( ns ) ? rawName : $"{ns}::{rawName}";
+    }
+
 }

@@ -35,8 +35,16 @@ internal class QualifierArgs {
     public string? mDroppable => mProperties.GetValueOrDefault( "droppable" );
 
 };
-internal record FieldInfo( string mTypeName, QualifierArgs mArgs, string mVariableName );
-internal record ClassInfo( string mTypeName, QualifierArgs mArgs, List<FieldInfo> mFields );
+internal record FieldInfo( 
+    string mTypeName, 
+    QualifierArgs mArgs, 
+    string mVariableName 
+    );
+internal record ClassInfo( 
+    string mTypeName,
+    QualifierArgs mArgs, 
+    List<FieldInfo> mFields 
+    );
 
 internal delegate void ParseFn( );
 internal class ParserMacroConfig {

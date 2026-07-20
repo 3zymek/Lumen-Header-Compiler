@@ -9,6 +9,7 @@ internal class Parser {
     private readonly List<ParserMacroConfig> mMacroHandlers;
 
     private List<Token> mTokens;
+    private string mCurrentNamespace = "";
     private int mPosition = 0;
 
     public Parser( ParserConfigFile cfg, List<Token> tokens ) {

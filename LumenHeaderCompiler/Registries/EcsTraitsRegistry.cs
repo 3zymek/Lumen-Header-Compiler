@@ -48,68 +48,61 @@ internal class EcsTraitsRegistry : IRegistry {
 
     public void Finalize( string rootDir, List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
 
-        string combinedPath = Path.Combine( rootDir, outProps.finalize_path );
-        StringBuilder sb = new( );
+        string bpName = "ecs_traits_instance_basefile";
+        string fileBase = mCfg.GetBlueprint( bpName, "\n" );
 
-        /*
-        var extraIncludes = classInfos
-            .Select( v => v.mGeneratedFilepath )
-            .Distinct( )
-            .Select( absPath => Path.GetRelativePath( Path.GetDirectoryName( combinedPath )!, absPath ) );
-       */
+        int bodyIndex = fileBase.FindTokenIndex( bpName, "{TraitsBody}" );
+        string bodyAlign = fileBase.CalculateIndent( bodyIndex );
 
-        string preamble = mCfg.ResolveFilePreamble( null );
-        sb.AppendLine( preamble );
+        int extensionsIndex = fileBase.FindTokenIndex( bpName, "{TraitsExtensions}" );
+        string extensionsAlign = fileBase.CalculateIndent( extensionsIndex );
 
-        StringBuilder forwardDeclareSb = new( );
-        foreach (var info in classInfos) {
-            forwardDeclareSb.AppendLine( $"struct {info.mInfo.mTypeName};" );
+        foreach(var info in classInfos) {
+
+            string generatedBody = resolve_traits_body( info );
+            string generatedExtensions = resolve_traits_extensions( info );
+
+            generatedBody = generatedBody.Replace( "\n", $"\n{bodyAlign}" );
+            generatedExtensions = generatedExtensions.Replace( "\n", $"\n{extensionsAlign}" );
+
+            string preamble = mCfg.ResolveFilePreamble( info.mOriginalFilepath, true );
+
+            string result = fileBase;
+            result = fileBase
+                .Replace( "{TraitsBody}", generatedBody )
+                .Replace( "{TraitsExtensions}", generatedExtensions );
+
+            File.WriteAllText( info.mGeneratedFilepath, preamble + result );
+            
         }
 
-        string forwardDeclareNamespace = mCfg.GetTemplate( "ecs_traits_forward_declare_namespace" ).Trim( );
-        string forwardDeclare = forwardDeclareSb.ToString( );
-        if (forwardDeclareNamespace != "")
-            forwardDeclare = forwardDeclare.InjectToNamespace( forwardDeclareNamespace );
-
-        sb.AppendLine( forwardDeclare );
-
-        string traitBaseBlueprint = mCfg.GetBlueprint( "ecs_trait_base", "\n" );
-
-        StringBuilder traitsSb = new( );
-        for( int i = 0; i < classInfos.Count; i++) {
-
-            var info = classInfos[i];
-
-            string formatted = traitBaseBlueprint.FormatWith( "ClassName", info.mInfo.mTypeName );
-
-            string resolved = resolve_base_trait( formatted, info );
-            traitsSb.AppendLine( resolved );
-
-        }
-
-        string baseFileBlueprint = mCfg.GetBlueprint( "ecs_traits_basefile", "\n" );
-        int index = baseFileBlueprint.FindTokenIndex( "ecs_traits_basefile", "{TraitsBase}" );
-        string alignment = baseFileBlueprint.CalculateIndent( index );
-
-        string traitsAligned = traitsSb.ToString( ).Replace( "\n", $"\n{alignment}" );
-
-        baseFileBlueprint = baseFileBlueprint.Replace( "{TraitsBase}", traitsAligned );
-
-        sb.Append( baseFileBlueprint );
-
-        string generatedPath = combinedPath.MakeGeneratedPath( "hpp" );
-        File.WriteAllText( generatedPath, sb.ToString( ) );
 
     }
 
-    private string resolve_base_trait( string baseStr, ClassGeneratedInfo classInfo ) {
+    private string resolve_traits_body( ClassGeneratedInfo classInfo ) {
 
-        string result = baseStr;
-        foreach (var cfg in mTraitToConfig) {
-            result = inject_trait_type( cfg, result, classInfo );
+        string traitBodyBlueprint = mCfg.GetBlueprint( "ecs_trait_generated_body", "\n" );
+
+        var formats = new Dictionary<string, string>( )
+        {
+            { "ParseName", classInfo.mInfo.ResolveParseName( ) },
+            { "DisplayName", classInfo.mInfo.ResolveDisplayName( ) },
+            { "CategoryName", classInfo.mInfo.ResolveCategoryName( mCfg ) },
+            { "ClassName", classInfo.mInfo.mTypeName },
+            { "ParseFn", classInfo.mParseFnName }
+        };
+
+        return traitBodyBlueprint.FormatWith( formats );
+
+    }
+
+    private string resolve_traits_extensions( ClassGeneratedInfo classInfo ) {
+
+        string extensionsBaseBlueprint = mCfg.GetBlueprint( "ecs_traits_generated_extensions", "\n" );
+        foreach(var cfg in mTraitToConfig) {
+            extensionsBaseBlueprint = inject_trait_type( cfg, extensionsBaseBlueprint, classInfo );
         }
-
-        return result;
+        return extensionsBaseBlueprint;
 
     }
 
