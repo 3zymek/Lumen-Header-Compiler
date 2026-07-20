@@ -15,7 +15,8 @@ internal class Program {
         baseConfig.mTypesCfg = ConfigLoader.LoadFromFile<TypesConfigFile>( "Types.json", serializerOptions );
 
         TokenizerConfigFile tokenizerConfig = ConfigLoader.LoadFromFile<TokenizerConfigFile>( "TokenizerConfig.json", serializerOptions );
-        ParserConfigFile    parserConfig    = ConfigLoader.LoadFromFile<ParserConfigFile>( "ParserConfig.json", serializerOptions );
+        ParserConfigFile parserConfig = ConfigLoader.LoadFromFile<ParserConfigFile>( "ParserConfig.json", serializerOptions );
+        parserConfig.mSupportedMacros = baseConfig.supported_macros;
 
         Tokenizer tokenizer = new( tokenizerConfig );
         Parser parser = new( parserConfig, tokenizer.mTokens );

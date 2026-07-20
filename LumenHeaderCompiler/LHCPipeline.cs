@@ -5,7 +5,6 @@ namespace lhc;
 internal record ClassGeneratedInfo(
     ClassInfo mInfo,
     string mGeneratedFilepath,
-    string mOriginalFilepath,
     string mParseFnName,
     string mSerializeFnName,
     string mEditorFnName
@@ -24,7 +23,7 @@ internal class LhcPipeline {
         mCfg = cfg;
         mRootDir = rootDir;
 
-        mRegistries.Add( "io_registry", new IoRegistry( mCfg ) );
+        mRegistries.Add( "parse_registry", new ParseRegistry( mCfg ) );
         mRegistries.Add( "editor_registry", new EditorRegistry( mCfg ) );
         mRegistries.Add( "ecs_traits_registry", new EcsTraitsRegistry( mCfg ) );
         mRegistries.Add( "editor_traits_registry", new EditorTraitsRegistry( mCfg ) );
@@ -51,7 +50,6 @@ internal class LhcPipeline {
             mClassInfos.Add(new(
                 mInfo: info,
                 mGeneratedFilepath: generatedPath,
-                mOriginalFilepath: sourceFile,
                 mParseFnName: parseFnName.FormatWith( "ClassName", info.mTypeName ),
                 mSerializeFnName: serializeFnName.FormatWith( "ClassName", info.mTypeName ),
                 mEditorFnName: editorFnName.FormatWith( "ClassName", info.mTypeName )
