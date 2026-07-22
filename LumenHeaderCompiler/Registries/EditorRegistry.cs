@@ -5,29 +5,49 @@ using System.Text;
 namespace lhc;
 
 internal class EditorRegistry : IRegistry {
-
     private readonly ConfigFile mCfg;
-    private StringBuilder mHeaderFile = new( );
-    private StringBuilder mSourceFile = new( );
-    private List<string> mExtraIncludes = new( );
-    private List<ClassInfo> mClasses = new( );
-    private string? mFunctionNamespace = null;
-
+    private readonly StringBuilder mHeaderFile = new( );
+    private readonly StringBuilder mSourceFile = new( );
+    private readonly List<ClassInfo> mClasses = new( );
+    private readonly string? mFunctionNamespace;
 
     public EditorRegistry( ConfigFile cfg ) {
-
         mCfg = cfg;
 
         string fnNamespace = mCfg.GetTemplate( "editor_namespace" );
-        if (fnNamespace.Trim( ) != "")
+        if (!string.IsNullOrWhiteSpace( fnNamespace )) {
             mFunctionNamespace = fnNamespace;
+        }
 
         initialize_files( );
-
     }
 
     public void HandleFile( string sourceFile, ClassInfo info ) {
-        var functionFormats = new Dictionary<string, string> {
+        append_class_editor_function( info );
+        track_processed_file( sourceFile, info );
+    }
+
+    public void Finalize( List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
+        finalize_files( Path.Combine( LhcPipeline.mRootDir, outProps.finalize_path ), classInfos );
+    }
+
+    private void initialize_files( ) {
+        string preamble = mCfg.ResolveFilePreamble( null );
+        mHeaderFile.AppendLine( preamble );
+
+        if (mFunctionNamespace != null) {
+            mHeaderFile.AppendLine( $"namespace {mFunctionNamespace} {{" );
+            mSourceFile.AppendLine( $"namespace {mFunctionNamespace} {{" );
+        }
+    }
+
+    private void track_processed_file( string sourceFile, ClassInfo info ) {
+        mClasses.Add( info );
+    }
+
+    private void append_class_editor_function( ClassInfo info ) {
+        var functionFormats = new Dictionary<string, string>
+        {
             { "ClassName", info.mTypeName },
             { "Var", mCfg.GetTemplate("editor_fn_var") }
         };
@@ -42,46 +62,43 @@ internal class EditorRegistry : IRegistry {
         string result = inject_inspector_fields( editorFn, info );
 
         if (mFunctionNamespace != null) {
-            string indent = "\t";
+            const string indent = "\t";
             result = indent + result.Replace( "\n", $"\n{indent}" );
         }
 
         mSourceFile.AppendLine( result );
-        mExtraIncludes.Add( Path.GetRelativePath( LhcPipeline.mRootDir, sourceFile ) );
-        mClasses.Add( info );
     }
 
     private string inject_inspector_fields( string blueprint, ClassInfo info ) {
         int index = blueprint.FindTokenIndex( "editor_fn", "{Inspector}" );
-
         string alignment = blueprint.CalculateIndent( index );
-
-        string preInspector = blueprint.Substring( 0, index );
-        string postInspector = blueprint.Substring( index + "{Inspector}".Length );
 
         StringBuilder inspectorSb = new( );
         for (int i = 0; i < info.mFields.Count; i++) {
             string inspector = build_field_inspector( info.mFields[i] );
             string formattedInspector = inspector.Replace( "\n", $"\n{alignment}" );
 
-            if (i != 0) inspectorSb.Append( alignment );
+            if (i != 0) {
+                inspectorSb.Append( alignment );
+            }
             inspectorSb.Append( formattedInspector );
         }
 
-        return preInspector + inspectorSb.ToString( ) + postInspector;
+        return blueprint.Replace( "{Inspector}", inspectorSb.ToString( ) );
     }
 
     private string build_field_inspector( FieldInfo field ) {
-
         string variableName = mCfg.GetTemplate( "editor_fn_var" );
         string? inspector = field.mArgs.mDroppable != null
             ? mCfg.mTypesCfg.TypeToDroppableInspector( field.mTypeName )
             : mCfg.mTypesCfg.TypeToInspector( field.mTypeName );
 
-        if (inspector == null)
+        if (inspector == null) {
             throw new Exception( $"Unknown type: '{field.mTypeName}' in {field.mVariableName}" );
+        }
 
-        var formats = new Dictionary<string, string> {
+        var formats = new Dictionary<string, string>
+        {
             { "DisplayName", field.ResolveDisplayName(mCfg) },
             { "FieldName", field.mVariableName },
             { "Var", variableName },
@@ -95,83 +112,74 @@ internal class EditorRegistry : IRegistry {
         return inspector.FormatWith( formats );
     }
 
-    public void Finalize( string rootDir, List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
-
-        finalize_files( Path.Combine( rootDir, outProps.finalize_path ) );
-
-    }
-
-    private void initialize_files( ) {
-
-        string preamble = mCfg.ResolveFilePreamble( null );
-        mHeaderFile.AppendLine( preamble );
-
-        if (mFunctionNamespace != null) {
-            mHeaderFile.AppendLine( $"namespace {mFunctionNamespace} {{" );
-            mSourceFile.AppendLine( $"namespace {mFunctionNamespace} {{" );
-        }
-
-    }
-
     private string inject_register_fields( string blueprint, List<ClassInfo> classInfos ) {
         int index = blueprint.FindTokenIndex( "editor_fn_register", "{Fields}" );
-
         string alignment = blueprint.CalculateIndent( index );
 
         string registerFieldBlueprint = mCfg.GetBlueprint( "editor_fn_register_field", "\n" );
         StringBuilder sb = new( );
+
         for (int i = 0; i < classInfos.Count; i++) {
-
             ClassInfo info = classInfos[i];
-
-            var formats = new Dictionary<string, string>( )
+            var formats = new Dictionary<string, string>
             {
-                { "ParseName", info.ResolveParseName() },
+                { "DeserializeName", info.ResolveDeserializeName() },
                 { "ClassName", info.mTypeName },
                 { "DisplayName", info.ResolveDisplayName() },
-                { "CategoryName", info.ResolveCategoryName( mCfg ) }
+                { "CategoryName", info.ResolveCategoryName(mCfg) }
             };
+
             string formatted = registerFieldBlueprint.FormatWith( formats );
             formatted = formatted.Replace( "\n", $"\n{alignment}" );
 
-            if (i != 0)
+            if (i != 0) {
                 sb.Append( alignment );
+            }
             sb.AppendLine( formatted );
-
         }
 
-        string result = blueprint.Replace( "{Fields}", sb.ToString( ) );
-        return result;
+        return blueprint.Replace( "{Fields}", sb.ToString( ) );
     }
 
-    private void finalize_files( string finalizePath ) {
 
+    private void finalize_files( string finalizePath, List<ClassGeneratedInfo> classInfos ) {
         string editorRegisterSignature = mCfg.GetTemplate( "editor_fn_register_signature" );
         string editorRegister = mCfg.GetBlueprint( "editor_fn_register", "\n" );
         editorRegister = editorRegister.FormatWith( "Signature", editorRegisterSignature );
 
-        string indent = (mFunctionNamespace != null) ? "\t" : "";
+        string indent = mFunctionNamespace != null ? "\t" : "";
         mHeaderFile.AppendLine( $"{indent}{editorRegisterSignature};" );
 
         string registerSource = inject_register_fields( editorRegister, mClasses );
-        if (mFunctionNamespace != null)
+        if (mFunctionNamespace != null) {
             registerSource = indent + registerSource.Replace( "\n", $"\n{indent}" );
+        }
         mSourceFile.AppendLine( registerSource );
 
-        if (mFunctionNamespace != null) {
-            mHeaderFile.AppendLine( $"}} // namespace {mFunctionNamespace}" );
-            mSourceFile.AppendLine( $"}} // namespace {mFunctionNamespace}" );
-        }
-
-        string preamble = mCfg.ResolveFilePreamble( finalizePath, true, mExtraIncludes );
-        string result = $"{preamble}\n{mSourceFile.ToString( )}";
-
-        string generatedSourcePath = finalizePath.MakeGeneratedPath( "cpp" );
-        File.WriteAllText( generatedSourcePath, result );
-
-        string generatedHeaderPath = finalizePath.MakeGeneratedPath( "hpp" );
-        File.WriteAllText( generatedHeaderPath, mHeaderFile.ToString( ) );
-
+        close_namespaces( );
+        write_output_to_disk( finalizePath, classInfos );
     }
 
+    private void close_namespaces( ) {
+        if (mFunctionNamespace == null) return;
+
+        mHeaderFile.AppendLine( $"}} // namespace {mFunctionNamespace}" );
+        mSourceFile.AppendLine( $"}} // namespace {mFunctionNamespace}" );
+    }
+
+    private void write_output_to_disk( string finalizePath, List<ClassGeneratedInfo> classInfos ) {
+
+        var relativeIncludes = classInfos
+            .Select( v => v.mGeneratedFilepath )
+            .Distinct( )
+            .Select( absPath => Path.GetRelativePath( LhcPipeline.mRootDir, absPath ).Replace( '\\', '/' ) );
+
+        string generatedHeaderPath = finalizePath.MakeGeneratedPath( "hpp" );
+        string preamble = mCfg.ResolveFilePreamble( generatedHeaderPath, false, relativeIncludes );
+        string sourceResult = $"{preamble}\n{mSourceFile}";
+
+        string generatedSourcePath = finalizePath.MakeGeneratedPath( "cpp" );
+        File.WriteAllText( generatedSourcePath, sourceResult );
+        File.WriteAllText( generatedHeaderPath, mHeaderFile.ToString( ) );
+    }
 }

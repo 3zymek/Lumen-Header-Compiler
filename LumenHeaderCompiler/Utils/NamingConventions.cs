@@ -21,7 +21,7 @@ internal static class NamingHelpers {
         return template.Replace( $"{{{key}}}", value );
     }
 
-    public static string ResolveParseName( this ClassInfo info ) {
+    public static string ResolveDeserializeName( this ClassInfo info ) {
         string fallback = info.mTypeName.StartsWith( 'C' ) ? info.mTypeName[1..] : info.mTypeName;
         fallback = System.Text.RegularExpressions.Regex.Replace( fallback, "([A-Z])", "_$1" ).TrimStart( '_' ).ToLower( );
         return info.mArgs.mParseName ?? fallback;
@@ -116,8 +116,8 @@ internal static class NamingHelpers {
         return $"{r.ToString( "F2", CultureInfo.InvariantCulture )}f, {g.ToString( "F2", CultureInfo.InvariantCulture )}f, {b.ToString( "F2", CultureInfo.InvariantCulture )}f, 1.0f";
     }
 
-    public static string ResolveParseFunctionName( this string rawName, ConfigFile cfg ) {
-        string ns = cfg.GetTemplate( "parsing_namespace" );
+    public static string ResolveDeserializeFunctionName( this string rawName, ConfigFile cfg ) {
+        string ns = cfg.GetTemplate( "deserialize_namespace" );
         return string.IsNullOrEmpty( ns ) ? rawName : $"{ns}::{rawName}";
     }
 

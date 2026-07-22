@@ -6,5 +6,5 @@ namespace lhc;
 
 internal interface IRegistry {
     void HandleFile( string sourceFile, ClassInfo info );
-    void Finalize( string rootDir, List<ClassGeneratedInfo> classInfos, OutputProperties outProps );
+    void Finalize( List<ClassGeneratedInfo> classInfos, OutputProperties outProps );
 }

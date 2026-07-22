@@ -46,16 +46,16 @@ internal class EditorTraitsRegistry : IRegistry {
         };
     }
 
-    public void HandleFile( string rootDir, ClassInfo classInfo ) {
+    public void HandleFile( string sourceFile, ClassInfo classInfo ) {
 
     }
 
-    public void Finalize( string rootDir, List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
+    public void Finalize( List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
 
-        string combinedPath = Path.Combine( rootDir, outProps.finalize_path );
+        string combinedPath = Path.Combine( LhcPipeline.mRootDir, outProps.finalize_path );
         StringBuilder sb = new( );
 
-        string preamble = mCfg.ResolveFilePreamble( combinedPath );
+        string preamble = mCfg.ResolveFilePreamble( null );
         sb.Append( preamble );
         sb.AppendLine( mCfg.GetBlueprint( "editor_traits_basefile", "\n" ) );
 

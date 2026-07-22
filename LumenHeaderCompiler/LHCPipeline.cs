@@ -6,7 +6,7 @@ internal record ClassGeneratedInfo(
     ClassInfo mInfo,
     string mGeneratedFilepath,
     string mOriginalFilepath,
-    string mParseFnName,
+    string mDeserializeFnName,
     string mSerializeFnName,
     string mEditorFnName
     );
@@ -24,10 +24,11 @@ internal class LhcPipeline {
         mCfg = cfg;
         mRootDir = rootDir;
 
-        mRegistries.Add( "parse_registry", new ParseRegistry( mCfg ) );
+        mRegistries.Add( "deserialize_registry", new DeserializeRegistry( mCfg ) );
         mRegistries.Add( "editor_registry", new EditorRegistry( mCfg ) );
         mRegistries.Add( "ecs_traits_registry", new EcsTraitsRegistry( mCfg ) );
         mRegistries.Add( "editor_traits_registry", new EditorTraitsRegistry( mCfg ) );
+        mRegistries.Add( "scene_registry", new SceneRegistry( mCfg ) );
 
     }
 
@@ -43,12 +44,10 @@ internal class LhcPipeline {
 
         foreach (var info in classInfos) {
 
-            string compName = info.ResolveParseName( );
-
-            string parseFnName = mCfg
-                .GetTemplate( "parse_fn_name" )
+            string deserializeFnName = mCfg
+                .GetTemplate( "deserialize_fn_name" )
                 .FormatWith( "ClassName", info.mTypeName )
-                .ResolveParseFunctionName( mCfg );
+                .ResolveDeserializeFunctionName( mCfg );
 
             string editorFnName = mCfg
                 .GetTemplate( "editor_fn_name" )
@@ -61,7 +60,7 @@ internal class LhcPipeline {
                 mInfo: info,
                 mGeneratedFilepath: generatedPath,
                 mOriginalFilepath: sourceFile,
-                mParseFnName: parseFnName,
+                mDeserializeFnName: deserializeFnName,
                 mSerializeFnName: serializeFnName,
                 mEditorFnName: editorFnName
             ) );
@@ -86,12 +85,13 @@ internal class LhcPipeline {
         foreach (var output in mCfg.outputs) {
 
             if (mRegistries.TryGetValue( output.registry_type, out var registry )) {
-                registry.Finalize( mRootDir, mClassInfos, output );
+                registry.Finalize( mClassInfos, output );
             }
             else throw new Exception( $"Unsupported registry type: '{output.registry_type}'" );
 
         }
 
     }
+
 
 }
