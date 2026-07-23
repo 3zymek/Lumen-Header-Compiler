@@ -21,7 +21,7 @@ internal static class NamingHelpers {
         return template.Replace( $"{{{key}}}", value );
     }
 
-    public static string ResolveDeserializeName( this ClassInfo info ) {
+    public static string ResolveSerializationName( this ClassInfo info ) {
         string fallback = info.mTypeName.StartsWith( 'C' ) ? info.mTypeName[1..] : info.mTypeName;
         fallback = System.Text.RegularExpressions.Regex.Replace( fallback, "([A-Z])", "_$1" ).TrimStart( '_' ).ToLower( );
         return info.mArgs.mParseName ?? fallback;

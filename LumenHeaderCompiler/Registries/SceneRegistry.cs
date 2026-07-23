@@ -32,7 +32,7 @@ internal class SceneRegistry : IRegistry {
             var formats = new Dictionary<string, string>( )
             {
                 { "ClassName", info.mInfo.mTypeName },
-                { "DeserializeFnName", info.mDeserializeFnName }
+                { "DeserializeFn", info.mDeserializeFnName }
             };
 
             string formattedField = fieldTemplateLines.FormatWith( formats );

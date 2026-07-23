@@ -113,17 +113,24 @@ internal class EditorRegistry : IRegistry {
     }
 
     private string inject_register_fields( string blueprint, List<ClassInfo> classInfos ) {
-        int index = blueprint.FindTokenIndex( "editor_fn_register", "{Fields}" );
+        int index = blueprint.FindTokenIndex( "editor_registry_fn", "{Fields}" );
         string alignment = blueprint.CalculateIndent( index );
 
-        string registerFieldBlueprint = mCfg.GetBlueprint( "editor_fn_register_field", "\n" );
+        string registerFieldBlueprint = mCfg.GetBlueprint( "editor_registry_field", "\n" );
         StringBuilder sb = new( );
 
         for (int i = 0; i < classInfos.Count; i++) {
             ClassInfo info = classInfos[i];
+
+            string editorFnName = mCfg
+                .GetTemplate( "editor_fn_name" )
+                .FormatWith( "ClassName", info.mTypeName )
+                .ResolveEditorFunctionName( mCfg );
+
             var formats = new Dictionary<string, string>
             {
-                { "DeserializeName", info.ResolveDeserializeName() },
+                { "DeserializeName", info.ResolveSerializationName() },
+                { "DrawInspectorFn", editorFnName },
                 { "ClassName", info.mTypeName },
                 { "DisplayName", info.ResolveDisplayName() },
                 { "CategoryName", info.ResolveCategoryName(mCfg) }
@@ -143,8 +150,8 @@ internal class EditorRegistry : IRegistry {
 
 
     private void finalize_files( string finalizePath, List<ClassGeneratedInfo> classInfos ) {
-        string editorRegisterSignature = mCfg.GetTemplate( "editor_fn_register_signature" );
-        string editorRegister = mCfg.GetBlueprint( "editor_fn_register", "\n" );
+        string editorRegisterSignature = mCfg.GetTemplate( "editor_registry_fn_signature" );
+        string editorRegister = mCfg.GetBlueprint( "editor_registry_fn", "\n" );
         editorRegister = editorRegister.FormatWith( "Signature", editorRegisterSignature );
 
         string indent = mFunctionNamespace != null ? "\t" : "";
@@ -175,8 +182,12 @@ internal class EditorRegistry : IRegistry {
             .Select( absPath => Path.GetRelativePath( LhcPipeline.mRootDir, absPath ).Replace( '\\', '/' ) );
 
         string generatedHeaderPath = finalizePath.MakeGeneratedPath( "hpp" );
-        string preamble = mCfg.ResolveFilePreamble( generatedHeaderPath, false, relativeIncludes );
-        string sourceResult = $"{preamble}\n{mSourceFile}";
+
+        string basefileTemplate = mCfg.GetBlueprint( "editor_registry_basefile", "\n" );
+        string finalSourceContent = basefileTemplate.FormatWith( "EditorRegistryBody", mSourceFile.ToString() );
+
+        string preamble = mCfg.ResolveFilePreamble( null, false, relativeIncludes );
+        string sourceResult = $"{preamble}\n{finalSourceContent}";
 
         string generatedSourcePath = finalizePath.MakeGeneratedPath( "cpp" );
         File.WriteAllText( generatedSourcePath, sourceResult );

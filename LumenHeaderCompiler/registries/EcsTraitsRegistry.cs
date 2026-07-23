@@ -21,8 +21,8 @@ internal class EcsTraitsRegistry : IRegistry {
             {
                 new EcsTraitConfig
                 {
-                    mToken = "{ParseNameTrait}",
-                    mBlueprintName = "ecs_trait_parse_name"
+                    mToken = "{SerializationNameTrait}",
+                    mBlueprintName = "ecs_trait_serialize_name"
                 }
             },
             {
@@ -114,7 +114,7 @@ internal class EcsTraitsRegistry : IRegistry {
 
         var formats = new Dictionary<string, string>( )
         {
-            { "ParseName", classInfo.mInfo.ResolveDeserializeName( ) },
+            { "SerializationName", classInfo.mInfo.ResolveSerializationName( ) },
             { "DisplayName", classInfo.mInfo.ResolveDisplayName( ) },
             { "CategoryName", classInfo.mInfo.ResolveCategoryName( mCfg ) },
             { "ClassName", classInfo.mInfo.mTypeName },
@@ -145,7 +145,7 @@ internal class EcsTraitsRegistry : IRegistry {
         var formats = new Dictionary<string, string>( )
             {
                 { "ClassName", classInfo.mInfo.mTypeName },
-                { "ParseName", classInfo.mInfo.ResolveDeserializeName() },
+                { "SerializationName", classInfo.mInfo.ResolveSerializationName() },
                 { "DisplayName", classInfo.mInfo.ResolveDisplayName() },
                 { "CategoryName", classInfo.mInfo.ResolveCategoryName(mCfg) }
             };
