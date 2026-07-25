@@ -86,27 +86,32 @@ internal class EcsTraitsRegistry : IRegistry {
             sb.AppendLine( genExtDefines );
             sb.AppendLine( result );
 
-            File.WriteAllText( info.mGeneratedFilepath, sb.ToString() );
+            File.WriteAllText( info.mGeneratedFilepath, sb.ToString( ) );
 
         }
 
 
     }
 
-    private (string formattedMacro, string defines) resolve_macro(string baseMacro, ClassGeneratedInfo classInfo) {
+    private (string formattedMacro, string defines) resolve_macro( string baseMacro, ClassGeneratedInfo classInfo ) {
 
         int index = baseMacro.IndexOf( '(' );
-        string formattedMacro = index != -1 
-            ? baseMacro.Insert( index, $"_{classInfo.mInfo.mTypeName}" ) 
+        string undefMacro = baseMacro;
+        if (index != -1) {
+            undefMacro = baseMacro.Substring( 0, index );
+        }
+
+        string formattedMacro = index != -1
+            ? baseMacro.Insert( index, $"_{classInfo.mInfo.mTypeName}" )
             : $"{baseMacro}_{classInfo.mInfo.mTypeName}";
 
         StringBuilder sb = new( );
-        sb.AppendLine( $"#undef {baseMacro}" );
+        sb.AppendLine( $"#undef {undefMacro}" );
         sb.AppendLine( $"#define {baseMacro} {formattedMacro}" );
 
         return (formattedMacro, sb.ToString( ));
 
-    } 
+    }
 
     private string resolve_traits_body( ClassGeneratedInfo classInfo ) {
 
