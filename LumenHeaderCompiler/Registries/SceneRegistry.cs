@@ -53,7 +53,7 @@ internal class SceneRegistry : IRegistry {
             .Replace( "{Fields}", fieldsSb.ToString( ) );
 
         var relativeIncludes = classInfos
-            .Select( v => v.mGeneratedFilepath )
+            .Select( v => v.mOriginalFilepath )
             .Distinct( )
             .Select( absPath => Path.GetRelativePath( LhcPipeline.mRootDir, absPath ).Replace( '\\', '/' ) );
 

@@ -73,7 +73,7 @@ internal class EcsTraitsRegistry : IRegistry {
             genBody = genBody.Replace( "\n", $"\n{bodyAlign}" );
             genExtensions = genExtensions.Replace( "\n", $"\n{extensionsAlign}" );
 
-            string preamble = mCfg.ResolveFilePreamble( info.mOriginalFilepath, true );
+            string preamble = mCfg.ResolveFilePreamble( null, true );
 
             string result = fileBase;
             result = fileBase

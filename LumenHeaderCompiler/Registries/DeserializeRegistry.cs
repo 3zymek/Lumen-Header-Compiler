@@ -91,9 +91,9 @@ internal class DeserializeRegistry : IRegistry {
         string targetDirectory = Path.GetDirectoryName( finalSourcePath )!;
 
         var relativeIncludes = classInfos
-            .Select( v => v.mGeneratedFilepath )
+            .Select( v => v.mOriginalFilepath )
             .Distinct( )
-            .Select( absPath => Path.GetRelativePath( targetDirectory, absPath ).Replace( '\\', '/' ) );
+            .Select( absPath => Path.GetRelativePath( LhcPipeline.mRootDir, absPath ).Replace( '\\', '/' ) );
 
         string headerToInclude = outProps.finalize_path.MakeGeneratedPath( "hpp" );
         string preamble = mCfg.ResolveFilePreamble( null, false, relativeIncludes );

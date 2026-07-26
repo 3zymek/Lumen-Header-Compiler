@@ -177,7 +177,7 @@ internal class EditorRegistry : IRegistry {
     private void write_output_to_disk( string finalizePath, List<ClassGeneratedInfo> classInfos ) {
 
         var relativeIncludes = classInfos
-            .Select( v => v.mGeneratedFilepath )
+            .Select( v => v.mOriginalFilepath )
             .Distinct( )
             .Select( absPath => Path.GetRelativePath( LhcPipeline.mRootDir, absPath ).Replace( '\\', '/' ) );
 
