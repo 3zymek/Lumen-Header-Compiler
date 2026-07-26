@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace lhc;
 
@@ -29,8 +30,9 @@ internal record Token(
     );
 
 internal class TokenizerConfigFile {
-    public required SupportedMacros macros { get; init; }
     public required List<string> tokens_to_ignore { get; init; }
     public required List<string> ends_with_to_ignore { get; init; }
     public required List<string> starts_with_to_ignore { get; init; }
+    [JsonIgnore] public SupportedMacros mMacros { get; set; }
+
 }

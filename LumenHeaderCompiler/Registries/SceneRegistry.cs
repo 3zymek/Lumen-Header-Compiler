@@ -32,7 +32,8 @@ internal class SceneRegistry : IRegistry {
             var formats = new Dictionary<string, string>( )
             {
                 { "ClassName", info.mInfo.mTypeName },
-                { "DeserializeFn", info.mDeserializeFnName }
+                { "DeserializeFn", info.mDeserializeFnName },
+                { "SerializationName", info.mInfo.ResolveSerializationName() }
             };
 
             string formattedField = fieldTemplateLines.FormatWith( formats );
@@ -72,6 +73,8 @@ internal class SceneRegistry : IRegistry {
 
         File.WriteAllText( outputPath, result );
     }
+
+    
 
 }
 

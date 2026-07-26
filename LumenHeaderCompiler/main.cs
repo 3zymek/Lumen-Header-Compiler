@@ -15,6 +15,8 @@ internal class Program {
         baseConfig.mTypesCfg = ConfigLoader.LoadFromFile<TypesConfigFile>( "Types.json", serializerOptions );
 
         TokenizerConfigFile tokenizerConfig = ConfigLoader.LoadFromFile<TokenizerConfigFile>( "TokenizerConfig.json", serializerOptions );
+        tokenizerConfig.mMacros = baseConfig.supported_macros;
+
         ParserConfigFile parserConfig = ConfigLoader.LoadFromFile<ParserConfigFile>( "ParserConfig.json", serializerOptions );
         parserConfig.mSupportedMacros = baseConfig.supported_macros;
 
@@ -24,7 +26,7 @@ internal class Program {
         string rootDir = args[0] ?? throw new Exception( "Invalid dotnet argument, missing root dir" );
         var files = Directory.GetFiles( rootDir, "*.hpp", SearchOption.AllDirectories )
             .Where( f => !f.Contains( Path.Combine( rootDir, "External" ) ) )
-            .Where( f => !f.EndsWith( ".generated.hpp" ) );
+            .Where( f => !f.EndsWith( ".gen.hpp" ) );
 
         LhcPipeline lhcPipeline = new( rootDir, baseConfig );
 

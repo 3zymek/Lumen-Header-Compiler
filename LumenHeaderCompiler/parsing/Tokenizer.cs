@@ -67,7 +67,12 @@ internal class Tokenizer {
 
     }
 
-    private char advance( ) => mFileContent[mCurrentIndex++];
+    private char advance( ) {
+        if (is_at_end( ))
+            return '\0';
+
+        return mFileContent[mCurrentIndex++];
+    }
     private char peek( int offset = 0 ) => (mCurrentIndex + offset < mFileContent.Length) ? mFileContent[mCurrentIndex + offset] : '\0';
     private bool is_at_end( ) => mCurrentIndex >= mFileContent.Length;
 
@@ -89,10 +94,18 @@ internal class Tokenizer {
 
     private void read_string_literal( ) {
         string value = "";
+
         while (!is_at_end( ) && peek( ) != '"') {
             value += advance( );
         }
+
+        if (is_at_end( )) {
+            throw new Exception(
+                $"Unterminated string literal in {mFileName}:{mCurrentLine}"
+            );
+        }
         advance( );
+
         mTokens.Add( new( TokenType.String, value, mCurrentLine, mFileName ) );
     }
 
@@ -103,7 +116,7 @@ internal class Tokenizer {
 
         if (should_ignore( value )) return;
 
-        if (mCfg.macros.mAll.Any( macro => value == macro )) {
+        if (mCfg.mMacros.mAll.Any( macro => value == macro )) {
             mTokens.Add( new( TokenType.Macro, value, mCurrentLine, mFileName ) );
         }
         else if (mRegisteredKeywords.Contains( value )) {

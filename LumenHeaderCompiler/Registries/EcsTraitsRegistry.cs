@@ -21,22 +21,8 @@ internal class EcsTraitsRegistry : IRegistry {
             {
                 new EcsTraitConfig
                 {
-                    mToken = "{SerializationNameTrait}",
-                    mBlueprintName = "ecs_trait_serialize_name"
-                }
-            },
-            {
-                new EcsTraitConfig
-                {
-                    mToken = "{DisplayNameTrait}",
-                    mBlueprintName = "ecs_trait_display_name"
-                }
-            },
-            {
-                new EcsTraitConfig
-                {
-                    mToken = "{CategoryNameTrait}",
-                    mBlueprintName = "ecs_trait_category_name"
+                    mToken = "{Body}",
+                    mBlueprintName = "ecs_trait_extensions_body"
                 }
             }
         };
@@ -117,14 +103,14 @@ internal class EcsTraitsRegistry : IRegistry {
 
         string traitBodyBlueprint = mCfg.GetBlueprint( "ecs_trait_generated_body", "\n" );
 
-        var formats = new Dictionary<string, string>( )
-        {
-            { "SerializationName", classInfo.mInfo.ResolveSerializationName( ) },
-            { "DisplayName", classInfo.mInfo.ResolveDisplayName( ) },
-            { "CategoryName", classInfo.mInfo.ResolveCategoryName( mCfg ) },
-            { "ClassName", classInfo.mInfo.mTypeName },
-            { "DeserializeFn", classInfo.mDeserializeFnName }
-        };
+        string serializationName = classInfo.mInfo.ResolveSerializationName( );
+        var formats = new Dictionary<string, string>( ) {
+                { "ClassName", classInfo.mInfo.mTypeName },
+                { "SerializationName", serializationName },
+                { "DisplayName", classInfo.mInfo.ResolveDisplayName() },
+                { "CategoryName", classInfo.mInfo.ResolveCategoryName(mCfg) },
+                { "SerializationID", StringHasher.Hash(serializationName).ToString() }
+            };
 
         return traitBodyBlueprint.FormatWith( formats );
 
@@ -147,15 +133,16 @@ internal class EcsTraitsRegistry : IRegistry {
         string alignment = baseStr.CalculateIndent( index );
 
         string traitBlueprint = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
-        var formats = new Dictionary<string, string>( )
-            {
+        string serializationName = classInfo.mInfo.ResolveSerializationName( );
+        var formats = new Dictionary<string, string>( ) {
                 { "ClassName", classInfo.mInfo.mTypeName },
-                { "SerializationName", classInfo.mInfo.ResolveSerializationName() },
+                { "SerializationName", serializationName },
                 { "DisplayName", classInfo.mInfo.ResolveDisplayName() },
-                { "CategoryName", classInfo.mInfo.ResolveCategoryName(mCfg) }
+                { "CategoryName", classInfo.mInfo.ResolveCategoryName(mCfg) },
+                { "SerializationID", StringHasher.Hash(serializationName).ToString() }
             };
 
-        string formatted = traitBlueprint.FormatWith( formats );
+        string formatted = traitBlueprint.FormatWith( formats ).Replace("\n", $"\n{alignment}" );
 
         string result = baseStr.Replace( cfg.mToken, formatted );
         return result;
