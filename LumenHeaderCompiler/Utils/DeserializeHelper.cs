@@ -17,7 +17,7 @@ internal class DeserializeHelper {
     public string BuildDeserializeFunction( ClassInfo info ) {
 
         string functionSignature = mCfg.GetTemplate( "deserialize_fn_signature" );
-        string functionBody = mCfg.GetBlueprint( "deserialize_fn_body", "\n" );
+        Blueprint functionBodyBp = mCfg.GetBlueprint( "deserialize_fn_body", "\n" );
         string varName = mCfg.GetTemplate( "deserialize_fn_var" );
 
         var baseFormats = new Dictionary<string, string>( ) {
@@ -25,12 +25,12 @@ internal class DeserializeHelper {
             { "Var", varName }
         };
 
-        string signaturedFunction = functionBody
+        functionBodyBp
             .FormatWith( "Signature", functionSignature )
             .FormatWith( baseFormats );
 
-        int index = signaturedFunction.FindTokenIndex( "deserialize_fn_body", "{Fields}" );
-        string alignment = signaturedFunction.CalculateIndent( index );
+        int index = functionBodyBp.FindTokenIndex( "{Fields}" );
+        string alignment = functionBodyBp.CalculateIndent( index );
 
         StringBuilder fieldsSb = new( );
         for (int i = 0; i < info.mFields.Count; i++) {
@@ -38,8 +38,8 @@ internal class DeserializeHelper {
             FieldInfo field = info.mFields[i];
             string reader = mCfg.TypeToReader( field.mTypeName ) ??
                 throw new Exception( $"Unknown type: '{field.mTypeName}' in {info.mTypeName}.{field.mVariableName}" );
-            
-            string blueprint = i == 0
+
+            Blueprint blueprint = i == 0
                 ? mCfg.GetBlueprint( "deserialize_fn_field_first", "\n" )
                 : mCfg.GetBlueprint( "deserialize_fn_field_next", "\n" );
 
@@ -52,15 +52,15 @@ internal class DeserializeHelper {
             if (i != 0)
                 fieldsSb.Append( alignment );
 
-            string formattedFieldBlock = blueprint.FormatWith( fieldFormats );
-            formattedFieldBlock = formattedFieldBlock.Replace( "\n", $"\n{alignment}" );
-            fieldsSb.AppendLine( formattedFieldBlock );
+            blueprint
+                .FormatWith( fieldFormats )
+                .Replace( "\n", $"\n{alignment}" );
+
+            fieldsSb.AppendLine( blueprint.mContent );
 
         }
 
-        string result = signaturedFunction.Replace( "{Fields}", fieldsSb.ToString( ) );
-
-        return result;
+        return functionBodyBp.Replace( "{Fields}", fieldsSb.ToString( ) ).mContent;
 
     }
 

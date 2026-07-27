@@ -34,14 +34,13 @@ internal class EcsTraitsRegistry : IRegistry {
 
     public void Finalize( List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
 
-        string bpName = "ecs_traits_instance_basefile";
-        string fileBase = mCfg.GetBlueprint( bpName, "\n" );
+        Blueprint baseBp = mCfg.GetBlueprint( "ecs_traits_instance_basefile", "\n" );
 
-        int bodyIndex = fileBase.FindTokenIndex( bpName, "{TraitsBody}" );
-        string bodyAlign = fileBase.CalculateIndent( bodyIndex );
+        int bodyIndex = baseBp.FindTokenIndex( "{TraitsBody}" );
+        string bodyAlign = baseBp.CalculateIndent( bodyIndex );
 
-        int extensionsIndex = fileBase.FindTokenIndex( bpName, "{TraitsExtensions}" );
-        string extensionsAlign = fileBase.CalculateIndent( extensionsIndex );
+        int extensionsIndex = baseBp.FindTokenIndex( "{TraitsExtensions}" );
+        string extensionsAlign = baseBp.CalculateIndent( extensionsIndex );
 
         foreach (var info in classInfos) {
 
@@ -49,11 +48,11 @@ internal class EcsTraitsRegistry : IRegistry {
             var (genExtMacro, genExtDefines) = resolve_macro( mCfg.supported_macros.class_extensions_macro, info );
 
             string genBody = format_as_macro(
-                genBodyMacro, resolve_traits_body( info )
+                genBodyMacro, resolve_traits_body( info ).mContent
             );
 
             string genExtensions = format_as_macro(
-                genExtMacro, resolve_traits_extensions( info )
+                genExtMacro, resolve_traits_extensions( info ).mContent
             );
 
             genBody = genBody.Replace( "\n", $"\n{bodyAlign}" );
@@ -61,8 +60,8 @@ internal class EcsTraitsRegistry : IRegistry {
 
             string preamble = mCfg.ResolveFilePreamble( null, true );
 
-            string result = fileBase;
-            result = fileBase
+            Blueprint result = baseBp;
+            result = baseBp
                 .Replace( "{TraitsBody}", genBody )
                 .Replace( "{TraitsExtensions}", genExtensions );
 
@@ -70,7 +69,7 @@ internal class EcsTraitsRegistry : IRegistry {
             sb.AppendLine( preamble );
             sb.AppendLine( genBodyDefines );
             sb.AppendLine( genExtDefines );
-            sb.AppendLine( result );
+            sb.AppendLine( result.mContent );
 
             File.WriteAllText( info.mGeneratedFilepath, sb.ToString( ) );
 
@@ -99,9 +98,9 @@ internal class EcsTraitsRegistry : IRegistry {
 
     }
 
-    private string resolve_traits_body( ClassGeneratedInfo classInfo ) {
+    private Blueprint resolve_traits_body( ClassGeneratedInfo classInfo ) {
 
-        string traitBodyBlueprint = mCfg.GetBlueprint( "ecs_trait_generated_body", "\n" );
+        Blueprint traitBodyBp = mCfg.GetBlueprint( "ecs_trait_generated_body", "\n" );
 
         string serializationName = classInfo.mInfo.ResolveSerializationName( );
         var formats = new Dictionary<string, string>( ) {
@@ -112,27 +111,28 @@ internal class EcsTraitsRegistry : IRegistry {
                 { "SerializationID", StringHasher.Hash(serializationName).ToString() }
             };
 
-        return traitBodyBlueprint.FormatWith( formats );
+        return traitBodyBp.FormatWith( formats );
 
     }
 
-    private string resolve_traits_extensions( ClassGeneratedInfo classInfo ) {
+    private Blueprint resolve_traits_extensions( ClassGeneratedInfo classInfo ) {
 
-        string extensionsBaseBlueprint = mCfg.GetBlueprint( "ecs_traits_generated_extensions", "\n" );
-        extensionsBaseBlueprint = extensionsBaseBlueprint.FormatWith( "ClassName", classInfo.mInfo.mTypeName );
+        Blueprint extensionsBaseBp = mCfg.GetBlueprint( "ecs_traits_generated_extensions", "\n" );
+        extensionsBaseBp.FormatWith( "ClassName", classInfo.mInfo.mTypeName );
+
         foreach (var cfg in mTraitToConfig) {
-            extensionsBaseBlueprint = inject_trait_type( cfg, extensionsBaseBlueprint, classInfo );
+            extensionsBaseBp = inject_trait_type( cfg, extensionsBaseBp, classInfo );
         }
-        return extensionsBaseBlueprint;
+        return extensionsBaseBp;
 
     }
 
-    private string inject_trait_type( EcsTraitConfig cfg, string baseStr, ClassGeneratedInfo classInfo ) {
+    private Blueprint inject_trait_type( EcsTraitConfig cfg, Blueprint baseBp, ClassGeneratedInfo classInfo ) {
 
-        int index = baseStr.FindTokenIndex( "ecs_traits_basefile", cfg.mToken );
-        string alignment = baseStr.CalculateIndent( index );
+        int index = baseBp.FindTokenIndex( cfg.mToken );
+        string alignment = baseBp.CalculateIndent( index );
 
-        string traitBlueprint = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
+        Blueprint traitBp = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
         string serializationName = classInfo.mInfo.ResolveSerializationName( );
         var formats = new Dictionary<string, string>( ) {
                 { "ClassName", classInfo.mInfo.mTypeName },
@@ -142,10 +142,9 @@ internal class EcsTraitsRegistry : IRegistry {
                 { "SerializationID", StringHasher.Hash(serializationName).ToString() }
             };
 
-        string formatted = traitBlueprint.FormatWith( formats ).Replace("\n", $"\n{alignment}" );
+        traitBp.FormatWith( formats ).Replace("\n", $"\n{alignment}" );
 
-        string result = baseStr.Replace( cfg.mToken, formatted );
-        return result;
+        return baseBp.Replace( cfg.mToken, traitBp.mContent );
 
     }
 

@@ -57,7 +57,7 @@ internal class EditorTraitsRegistry : IRegistry {
 
         string preamble = mCfg.ResolveFilePreamble( null );
         sb.Append( preamble );
-        sb.AppendLine( mCfg.GetBlueprint( "editor_traits_basefile", "\n" ) );
+        sb.AppendLine( mCfg.GetBlueprint( "editor_traits_basefile", "\n" ).mContent );
 
         string result = sb.ToString( );
         foreach (var cfg in mTraitToConfig) {
@@ -74,13 +74,13 @@ internal class EditorTraitsRegistry : IRegistry {
     private string inject_category_icons_traits( EditorTraitConfig cfg, string baseStr, List<ClassGeneratedInfo> classInfos ) {
 
         var icons = mCfg.category_icons;
-        string functionTemplate = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
-        string fieldsTemplate = mCfg.GetBlueprint( "editor_trait_category_icon_field", "" );
+        Blueprint functionBp = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
+        Blueprint fieldsBp = mCfg.GetBlueprint( "editor_trait_category_icon_field", "" );
 
-        int fieldsIndex = functionTemplate.FindTokenIndex( cfg.mBlueprintName, "{Fields}" );
-        string fieldsAlignment = functionTemplate.CalculateIndent( fieldsIndex );
+        int fieldsIndex = functionBp.FindTokenIndex( "{Fields}" );
+        string fieldsAlignment = functionBp.CalculateIndent( fieldsIndex );
 
-        int baseStrIndex = baseStr.FindTokenIndex( "editor_traits_basefile", cfg.mToken );
+        int baseStrIndex = baseStr.FindTokenIndex( cfg.mToken );
         string baseAlignment = baseStr.CalculateIndent( baseStrIndex );
 
         StringBuilder sb = new( );
@@ -97,31 +97,31 @@ internal class EditorTraitsRegistry : IRegistry {
             else {
                 sb.Append( fieldsAlignment );
             }
-            sb.AppendLine( fieldsTemplate.FormatWith( formats ) );
+            sb.AppendLine( fieldsBp.FormatWith( formats ).mContent );
         }
 
-        string injectedFunction = functionTemplate.Replace( "{Fields}", sb.ToString( ) );
-        string alignedFunction = injectedFunction.Replace( "\n", $"\n{baseAlignment}" );
-        string result = baseStr.Replace( cfg.mToken, alignedFunction );
+        functionBp
+            .Replace( "{Fields}", sb.ToString( ) )
+            .Replace( "\n", $"\n{baseAlignment}" );
 
-        return result;
+        return baseStr.Replace( cfg.mToken, functionBp.mContent );
     }
 
-    private string inject_category_color_traits( EditorTraitConfig cfg, string baseStr, List<ClassGeneratedInfo> classInfos) {
+    private string inject_category_color_traits( EditorTraitConfig cfg, string baseStr, List<ClassGeneratedInfo> classInfos ) {
 
         var colors = mCfg.category_colors;
-        string functionTemplate = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
-        string fieldsTemplate = mCfg.GetBlueprint( "editor_trait_category_color_field", "\n" );
+        Blueprint functionBp = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
+        Blueprint fieldsBp = mCfg.GetBlueprint( "editor_trait_category_color_field", "\n" );
 
-        int fieldsIndex = functionTemplate.FindTokenIndex( cfg.mBlueprintName, "{Fields}" );
-        string fieldsAlignment = functionTemplate.CalculateIndent( fieldsIndex );
+        int fieldsIndex = functionBp.FindTokenIndex( "{Fields}" );
+        string fieldsAlignment = functionBp.CalculateIndent( fieldsIndex );
 
-        int baseStrIndex = baseStr.FindTokenIndex( "editor_traits_basefile", cfg.mToken );
+        int baseStrIndex = baseStr.FindTokenIndex( cfg.mToken );
         string baseAlignment = baseStr.CalculateIndent( baseStrIndex );
 
         StringBuilder sb = new( );
         bool firstLoop = true;
-        foreach( var (category, color) in colors) {
+        foreach (var (category, color) in colors) {
 
             var formats = new Dictionary<string, string>( )
             {
@@ -135,15 +135,15 @@ internal class EditorTraitsRegistry : IRegistry {
             else {
                 sb.Append( fieldsAlignment );
             }
-            sb.AppendLine( fieldsTemplate.FormatWith( formats ) );
+            sb.AppendLine( fieldsBp.FormatWith( formats ).mContent );
 
         }
 
-        string injectedFunction = functionTemplate.Replace( "{Fields}", sb.ToString( ) );
-        string alignedFunction = injectedFunction.Replace( "\n", $"\n{baseAlignment}" );
-        string result = baseStr.Replace( cfg.mToken, alignedFunction );
+        functionBp
+            .Replace( "{Fields}", sb.ToString( ) )
+            .Replace( "\n", $"\n{baseAlignment}" );
 
-        return result;
+        return baseStr.Replace( cfg.mToken, functionBp.mContent );
 
     }
 

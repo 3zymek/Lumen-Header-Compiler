@@ -63,9 +63,9 @@ internal static class NamingHelpers {
         return Path.Combine( directory, $"{fileNameWithoutExt}.gen.{extension}" );
     }
 
-    public static int FindTokenIndex( this string blueprint, string blueprintName, string token ) {
-        int index = blueprint.IndexOf( token );
-        if (index == -1) throw new ArgumentNullException( $"Couldn't find {token} token in {blueprintName}" );
+    public static int FindTokenIndex( this string str, string token ) {
+        int index = str.IndexOf( token );
+        if (index == -1) throw new ArgumentNullException( $"Couldn't find {token} token in {str}" );
         return index;
     }
 

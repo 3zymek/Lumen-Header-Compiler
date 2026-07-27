@@ -11,14 +11,9 @@ internal static class ConfigFileExtensions {
             : throw new KeyNotFoundException( $"Missing template key '{key}' in config.json" );
     }
 
-    public static List<string> GetBlueprint( this ConfigFile cfg, string key ) {
+    public static Blueprint GetBlueprint( this ConfigFile cfg, string key, string separator ) {
         return cfg.blueprints.TryGetValue( key, out var val )
-             ? val
-             : throw new KeyNotFoundException( $"Missing blueprint key '{key}' in config.json" );
-    }
-    public static string GetBlueprint( this ConfigFile cfg, string key, string separator ) {
-        return cfg.blueprints.TryGetValue( key, out var val )
-            ? string.Join( separator, val )
+            ? new Blueprint(key, string.Join( separator, val ))
             : throw new KeyNotFoundException( $"Missing blueprint key '{key}' in config.json" );
     }
 
@@ -38,10 +33,12 @@ internal static class ConfigFileExtensions {
     public static string ResolveFilePreamble( this ConfigFile cfg, string? sourceFile = null, bool pragmaOnce = true, IEnumerable<string>? extraIncludes = null ) {
 
         string sourceName = sourceFile != null ? Path.GetFileName( sourceFile ) : "";
-        string formattedPreamble = cfg.GetBlueprint( "file_preamble", "\n" ).FormatWith( "Source", sourceName );
+        Blueprint formattedPreamble = cfg
+            .GetBlueprint( "file_preamble", "\n" )
+            .FormatWith( "Source", sourceName );
 
         StringBuilder sb = new( );
-        sb.AppendLine( formattedPreamble );
+        sb.AppendLine( formattedPreamble.mContent );
         if (pragmaOnce) sb.AppendLine( "#pragma once" );
 
         if (sourceFile != null) sb.AppendLine( $"#include \"{Path.GetFileName(sourceFile)}\"" );

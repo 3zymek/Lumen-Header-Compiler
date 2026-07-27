@@ -47,22 +47,23 @@ internal class DeserializeRegistry : IRegistry {
 
         string rawSignatures = sb.ToString( );
 
-        string fileBase = mCfg.GetBlueprint( "deserialize_registry_header_basefile", "\n" );
-        int index = fileBase.FindTokenIndex( "deserialize_registry_header_basefile", "{DeserializeFunctions}" );
-        string alignment = fileBase.CalculateIndent( index );
+        Blueprint baseBp = mCfg.GetBlueprint( "deserialize_registry_header_basefile", "\n" );
+        int index = baseBp.FindTokenIndex( "{DeserializeFunctions}" );
+        string alignment = baseBp.CalculateIndent( index );
 
         string alignedContent = rawSignatures.Replace( "\n", $"\n{alignment}" );
-        string result = fileBase.Replace( "{DeserializeFunctions}", alignedContent );
+        baseBp.Replace( "{DeserializeFunctions}", alignedContent );
 
         if (mNamespace != null) {
-            result = result.InjectToNamespace( mNamespace );
+            baseBp.mContent = baseBp.mContent.InjectToNamespace( mNamespace );
         }
 
         string finalHeaderPath = Path.Combine( LhcPipeline.mRootDir, outProps.finalize_path ).MakeGeneratedPath( "hpp" );
         finalHeaderPath.EnsureDirectory( );
 
         string preamble = mCfg.ResolveFilePreamble( null );
-        File.WriteAllText( finalHeaderPath, preamble + result );
+        File.WriteAllText( finalHeaderPath, preamble + baseBp.mContent );
+
     }
     private void handle_source_file( List<ClassGeneratedInfo> classInfos, OutputProperties outProps ) {
 
@@ -78,12 +79,12 @@ internal class DeserializeRegistry : IRegistry {
             rawFunctionsCode = rawFunctionsCode.InjectToNamespace( mNamespace );
         }
 
-        string fileBase = mCfg.GetBlueprint( "deserialize_registry_source_basefile", "\n" );
-        int index = fileBase.FindTokenIndex( "deserialize_registry_source_basefile", "{DeserializeFunctions}" );
-        string alignment = fileBase.CalculateIndent( index );
+        Blueprint baseBp = mCfg.GetBlueprint( "deserialize_registry_source_basefile", "\n" );
+        int index = baseBp.FindTokenIndex( "{DeserializeFunctions}" );
+        string alignment = baseBp.CalculateIndent( index );
 
         string alignedContent = rawFunctionsCode.Replace( "\n", $"\n{alignment}" );
-        string result = fileBase.Replace( "{DeserializeFunctions}", alignedContent );
+        baseBp.Replace( "{DeserializeFunctions}", alignedContent );
 
         string finalSourcePath = Path.Combine( LhcPipeline.mRootDir, outProps.finalize_path ).MakeGeneratedPath( "cpp" );
         finalSourcePath.EnsureDirectory( );
@@ -98,7 +99,7 @@ internal class DeserializeRegistry : IRegistry {
         string headerToInclude = outProps.finalize_path.MakeGeneratedPath( "hpp" );
         string preamble = mCfg.ResolveFilePreamble( null, false, relativeIncludes );
 
-        File.WriteAllText( finalSourcePath, preamble + result );
+        File.WriteAllText( finalSourcePath, preamble + baseBp.mContent );
 
     }
 

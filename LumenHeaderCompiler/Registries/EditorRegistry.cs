@@ -56,22 +56,24 @@ internal class EditorRegistry : IRegistry {
         string hppIndent = mFunctionNamespace != null ? "\t" : "";
         mHeaderFile.AppendLine( $"{hppIndent}{fnSignature};" );
 
-        string editorFn = mCfg.GetBlueprint( "editor_fn", "\n" );
-        editorFn = editorFn.FormatWith( "Signature", fnSignature ).FormatWith( functionFormats );
+        Blueprint functionBp = mCfg.GetBlueprint( "editor_fn", "\n" );
+        functionBp
+            .FormatWith( "Signature", fnSignature )
+            .FormatWith( functionFormats );
 
-        string result = inject_inspector_fields( editorFn, info );
+        Blueprint result = inject_inspector_fields( functionBp, info );
 
         if (mFunctionNamespace != null) {
             const string indent = "\t";
-            result = indent + result.Replace( "\n", $"\n{indent}" );
+            result.mContent = indent + result.Replace( "\n", $"\n{indent}" ).mContent;
         }
 
-        mSourceFile.AppendLine( result );
+        mSourceFile.AppendLine( result.mContent );
     }
 
-    private string inject_inspector_fields( string blueprint, ClassInfo info ) {
-        int index = blueprint.FindTokenIndex( "editor_fn", "{Inspector}" );
-        string alignment = blueprint.CalculateIndent( index );
+    private Blueprint inject_inspector_fields( Blueprint bp, ClassInfo info ) {
+        int index = bp.FindTokenIndex( "{Inspector}" );
+        string alignment = bp.CalculateIndent( index );
 
         StringBuilder inspectorSb = new( );
         for (int i = 0; i < info.mFields.Count; i++) {
@@ -84,7 +86,7 @@ internal class EditorRegistry : IRegistry {
             inspectorSb.Append( formattedInspector );
         }
 
-        return blueprint.Replace( "{Inspector}", inspectorSb.ToString( ) );
+        return bp.Replace( "{Inspector}", inspectorSb.ToString( ) );
     }
 
     private string build_field_inspector( FieldInfo field ) {
@@ -112,11 +114,12 @@ internal class EditorRegistry : IRegistry {
         return inspector.FormatWith( formats );
     }
 
-    private string inject_register_fields( string blueprint, List<ClassInfo> classInfos ) {
-        int index = blueprint.FindTokenIndex( "editor_registry_fn", "{Fields}" );
-        string alignment = blueprint.CalculateIndent( index );
+    private Blueprint inject_register_fields( Blueprint bp, List<ClassInfo> classInfos ) {
 
-        string registerFieldBlueprint = mCfg.GetBlueprint( "editor_registry_field", "\n" );
+        int index = bp.FindTokenIndex( "{Fields}" );
+        string alignment = bp.CalculateIndent( index );
+
+        Blueprint registerFieldBp = mCfg.GetBlueprint( "editor_registry_field", "\n" );
         StringBuilder sb = new( );
 
         for (int i = 0; i < classInfos.Count; i++) {
@@ -136,32 +139,34 @@ internal class EditorRegistry : IRegistry {
                 { "CategoryName", info.ResolveCategoryName(mCfg) }
             };
 
-            string formatted = registerFieldBlueprint.FormatWith( formats );
-            formatted = formatted.Replace( "\n", $"\n{alignment}" );
+            registerFieldBp
+                .FormatWith( formats )
+                .Replace( "\n", $"\n{alignment}" );
 
             if (i != 0) {
                 sb.Append( alignment );
             }
-            sb.AppendLine( formatted );
+            sb.AppendLine( registerFieldBp.mContent );
         }
 
-        return blueprint.Replace( "{Fields}", sb.ToString( ) );
+        return bp.Replace( "{Fields}", sb.ToString( ) );
     }
 
 
     private void finalize_files( string finalizePath, List<ClassGeneratedInfo> classInfos ) {
+
         string editorRegisterSignature = mCfg.GetTemplate( "editor_registry_fn_signature" );
-        string editorRegister = mCfg.GetBlueprint( "editor_registry_fn", "\n" );
-        editorRegister = editorRegister.FormatWith( "Signature", editorRegisterSignature );
+        Blueprint editorRegisterBp = mCfg.GetBlueprint( "editor_registry_fn", "\n" );
+        editorRegisterBp = editorRegisterBp.FormatWith( "Signature", editorRegisterSignature );
 
         string indent = mFunctionNamespace != null ? "\t" : "";
         mHeaderFile.AppendLine( $"{indent}{editorRegisterSignature};" );
 
-        string registerSource = inject_register_fields( editorRegister, mClasses );
+        Blueprint registerSource = inject_register_fields( editorRegisterBp, mClasses );
         if (mFunctionNamespace != null) {
-            registerSource = indent + registerSource.Replace( "\n", $"\n{indent}" );
+            registerSource.mContent = indent + registerSource.Replace( "\n", $"\n{indent}" ).mContent;
         }
-        mSourceFile.AppendLine( registerSource );
+        mSourceFile.AppendLine( registerSource.mContent );
 
         close_namespaces( );
         write_output_to_disk( finalizePath, classInfos );
@@ -183,11 +188,11 @@ internal class EditorRegistry : IRegistry {
 
         string generatedHeaderPath = finalizePath.MakeGeneratedPath( "hpp" );
 
-        string basefileTemplate = mCfg.GetBlueprint( "editor_registry_basefile", "\n" );
-        string finalSourceContent = basefileTemplate.FormatWith( "EditorRegistryBody", mSourceFile.ToString() );
+        Blueprint baseBp = mCfg.GetBlueprint( "editor_registry_basefile", "\n" );
+        baseBp.FormatWith( "EditorRegistryBody", mSourceFile.ToString() );
 
         string preamble = mCfg.ResolveFilePreamble( null, false, relativeIncludes );
-        string sourceResult = $"{preamble}\n{finalSourceContent}";
+        string sourceResult = $"{preamble}\n{baseBp.mContent}";
 
         string generatedSourcePath = finalizePath.MakeGeneratedPath( "cpp" );
         File.WriteAllText( generatedSourcePath, sourceResult );
