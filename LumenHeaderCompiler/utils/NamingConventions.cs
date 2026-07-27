@@ -32,6 +32,11 @@ internal static class NamingHelpers {
         return info.mArgs.mDisplayName ?? camel_case_to_display( fallback );
     }
 
+    public static string ResolveDisplayName( this string str ) {
+        string fallback = str.StartsWith( 'C' ) ? str[1..] : str;
+        return camel_case_to_display( fallback );
+    }
+
     public static string ResolveCategoryName( this ClassInfo info, ConfigFile cfg ) {
         return info.mArgs.mCategoryName ?? 
             cfg.GetDefault("category") ??
@@ -45,7 +50,7 @@ internal static class NamingHelpers {
         }
         return info.mArgs.mDisplayName ?? camel_case_to_display( name );
     }
-    public static string ResolveFieldName( this FieldInfo info, ConfigFile cfg ) {
+    public static string ResolveSerializationName( this FieldInfo info, ConfigFile cfg ) {
         string name = info.mVariableName;
         if (name.Length > 1 && cfg.prefixes.Contains( name[0].ToString( ) ) && char.IsUpper( name[1] )) {
             name = name.Substring( 1 );

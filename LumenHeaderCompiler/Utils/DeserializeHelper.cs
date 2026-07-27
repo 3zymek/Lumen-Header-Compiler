@@ -45,6 +45,7 @@ internal class DeserializeHelper {
 
             var fieldFormats = new Dictionary<string, string>( ) {
                 { "FieldName", field.mVariableName },
+                { "FieldSerializationName", field.ResolveSerializationName( mCfg ) },
                 { "Var", varName },
                 { "Reader", reader },
             };

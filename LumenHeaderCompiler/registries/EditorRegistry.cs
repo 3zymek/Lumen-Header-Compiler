@@ -119,10 +119,10 @@ internal class EditorRegistry : IRegistry {
         int index = bp.FindTokenIndex( "{Fields}" );
         string alignment = bp.CalculateIndent( index );
 
-        Blueprint registerFieldBp = mCfg.GetBlueprint( "editor_registry_field", "\n" );
         StringBuilder sb = new( );
 
         for (int i = 0; i < classInfos.Count; i++) {
+
             ClassInfo info = classInfos[i];
 
             string editorFnName = mCfg
@@ -139,6 +139,8 @@ internal class EditorRegistry : IRegistry {
                 { "CategoryName", info.ResolveCategoryName(mCfg) }
             };
 
+            Blueprint registerFieldBp = mCfg.GetBlueprint( "editor_registry_field", "\n" );
+
             registerFieldBp
                 .FormatWith( formats )
                 .Replace( "\n", $"\n{alignment}" );
@@ -147,6 +149,7 @@ internal class EditorRegistry : IRegistry {
                 sb.Append( alignment );
             }
             sb.AppendLine( registerFieldBp.mContent );
+
         }
 
         return bp.Replace( "{Fields}", sb.ToString( ) );
@@ -170,6 +173,7 @@ internal class EditorRegistry : IRegistry {
 
         close_namespaces( );
         write_output_to_disk( finalizePath, classInfos );
+
     }
 
     private void close_namespaces( ) {

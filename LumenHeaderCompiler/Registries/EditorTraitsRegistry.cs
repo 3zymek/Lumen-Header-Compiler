@@ -75,7 +75,6 @@ internal class EditorTraitsRegistry : IRegistry {
 
         var icons = mCfg.category_icons;
         Blueprint functionBp = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
-        Blueprint fieldsBp = mCfg.GetBlueprint( "editor_trait_category_icon_field", "" );
 
         int fieldsIndex = functionBp.FindTokenIndex( "{Fields}" );
         string fieldsAlignment = functionBp.CalculateIndent( fieldsIndex );
@@ -86,10 +85,13 @@ internal class EditorTraitsRegistry : IRegistry {
         StringBuilder sb = new( );
         bool firstLoop = true;
         foreach (var (category, icon) in icons) {
+            
             var formats = new Dictionary<string, string>( ) {
                 { "CategoryName", category },
                 { "Icon", icon }
             };
+
+            Blueprint fieldsBp = mCfg.GetBlueprint( "editor_trait_category_icon_field", "\n" );
 
             if (firstLoop) {
                 firstLoop = false;
@@ -98,6 +100,7 @@ internal class EditorTraitsRegistry : IRegistry {
                 sb.Append( fieldsAlignment );
             }
             sb.AppendLine( fieldsBp.FormatWith( formats ).mContent );
+        
         }
 
         functionBp
@@ -111,7 +114,6 @@ internal class EditorTraitsRegistry : IRegistry {
 
         var colors = mCfg.category_colors;
         Blueprint functionBp = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
-        Blueprint fieldsBp = mCfg.GetBlueprint( "editor_trait_category_color_field", "\n" );
 
         int fieldsIndex = functionBp.FindTokenIndex( "{Fields}" );
         string fieldsAlignment = functionBp.CalculateIndent( fieldsIndex );
@@ -128,6 +130,8 @@ internal class EditorTraitsRegistry : IRegistry {
                 { "CategoryName", category },
                 { "Color", color.HexToVector4() }
             };
+
+            Blueprint fieldsBp = mCfg.GetBlueprint( "editor_trait_category_color_field", "\n" );
 
             if (firstLoop) {
                 firstLoop = false;

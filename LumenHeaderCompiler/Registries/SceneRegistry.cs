@@ -25,27 +25,24 @@ internal class SceneRegistry : IRegistry {
         StringBuilder fieldsSb = new( );
 
         for (int i = 0; i < classInfos.Count; i++) {
-
             var info = classInfos[i];
             Blueprint fieldBp = mCfg.GetBlueprint( "scene_registry_fn_field", "\n" );
 
-            var formats = new Dictionary<string, string>( )
-            {
+            var formats = new Dictionary<string, string>( ) {   
                 { "ClassName", info.mInfo.mTypeName },
                 { "DeserializeFn", info.mDeserializeFnName },
                 { "SerializationName", info.mInfo.ResolveSerializationName() }
             };
 
-            fieldBp
-                .FormatWith( formats )
-                .Replace( "\n", $"\n{fieldsAlign}" );
+            fieldBp.FormatWith( formats );
+
+            string fieldContent = fieldBp.mContent.Replace( "\n", $"\n{fieldsAlign}" );
 
             if (i > 0) {
                 fieldsSb.AppendLine( );
-                fieldsSb.Append( fieldsAlign );
             }
 
-            fieldsSb.Append( fieldBp.mContent );
+            fieldsSb.Append( fieldContent );
         }
 
         string signature = mCfg.GetTemplate( "scene_registry_fn_signature" );
@@ -54,6 +51,14 @@ internal class SceneRegistry : IRegistry {
             .Replace( "{Signature}", signature )
             .Replace( "{Fields}", fieldsSb.ToString( ) );
 
+        Blueprint fileBaseBp = mCfg.GetBlueprint( "scene_registry_basefile", "\n" );
+        int index = fileBaseBp.FindTokenIndex( "{SceneRegistryBody}" );
+        string alignment = fileBaseBp.CalculateIndent( index );
+
+        string functionContent = functionBaseBp.mContent.Replace( "\n", $"\n{alignment}" );
+
+        fileBaseBp.Replace( "{SceneRegistryBody}", functionContent );
+
         var relativeIncludes = classInfos
             .Select( v => v.mOriginalFilepath )
             .Distinct( )
@@ -61,23 +66,16 @@ internal class SceneRegistry : IRegistry {
 
         string preamble = mCfg.ResolveFilePreamble( null, false, relativeIncludes );
 
-        Blueprint fileBaseBp = mCfg.GetBlueprint( "scene_registry_basefile", "\n" );
-        int index = fileBaseBp.FindTokenIndex( "{SceneRegistryBody}" );
-        string alignment = fileBaseBp.CalculateIndent( index );
-
-        fileBaseBp
-            .Replace( "\n", $"\n{alignment}" )
-            .Replace( "{SceneRegistryBody}", functionBaseBp.mContent );
-
-        string result = preamble + fileBaseBp.mContent;
+        string result = preamble + "\n" + fileBaseBp.mContent;
 
         string outputPath = Path.Combine( LhcPipeline.mRootDir, outProps.finalize_path ).MakeGeneratedPath( "cpp" );
         outputPath.EnsureDirectory( );
 
         File.WriteAllText( outputPath, result );
+
     }
 
-    
+
 
 }
 
