@@ -60,8 +60,8 @@ internal class EcsTraitsRegistry : IRegistry {
 
             string preamble = mCfg.ResolveFilePreamble( null, true );
 
-            Blueprint result = baseBp;
-            result = baseBp
+            Blueprint result = new( baseBp );
+            result = result
                 .Replace( "{TraitsBody}", genBody )
                 .Replace( "{TraitsExtensions}", genExtensions );
 
@@ -135,17 +135,17 @@ internal class EcsTraitsRegistry : IRegistry {
         Blueprint traitBp = mCfg.GetBlueprint( cfg.mBlueprintName, "\n" );
         string serializationName = classInfo.mInfo.ResolveSerializationName( );
         var formats = new Dictionary<string, string>( ) {
-                { "ClassName", classInfo.mInfo.mTypeName },
-                { "SerializationName", serializationName },
-                { "DisplayName", classInfo.mInfo.ResolveDisplayName() },
-                { "CategoryName", classInfo.mInfo.ResolveCategoryName(mCfg) },
-                { "SerializationID", StringHasher.Hash(serializationName).ToString() }
-            };
+            { "ClassName", classInfo.mInfo.mTypeName },
+            { "SerializationName", serializationName },
+            { "DisplayName", classInfo.mInfo.ResolveDisplayName() },
+            { "CategoryName", classInfo.mInfo.ResolveCategoryName(mCfg) },
+            { "SerializationID", StringHasher.Hash(serializationName).ToString() }
+        };
 
-        traitBp.FormatWith( formats ).Replace("\n", $"\n{alignment}" );
+        traitBp.FormatWith( formats )
+               .Replace( "\n", $"\n{alignment}" );
 
         return baseBp.Replace( cfg.mToken, traitBp.mContent );
-
     }
 
     private string format_as_macro( string macroName, string content ) {

@@ -13,6 +13,10 @@ internal sealed class Blueprint {
         mKey = key;
         mContent = content;
     }
+    public Blueprint( Blueprint other ) {
+        mKey = other.mKey;
+        mContent = other.mContent;
+    }
 
     public Blueprint FormatWith( string key, string value ) {
         mContent = mContent.FormatWith( key, value );
