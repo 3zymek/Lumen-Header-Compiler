@@ -80,15 +80,9 @@ internal class EcsTraitsRegistry : IRegistry {
 
     private (string formattedMacro, string defines) resolve_macro( string baseMacro, ClassGeneratedInfo classInfo ) {
 
-        int index = baseMacro.IndexOf( '(' );
-        string undefMacro = baseMacro;
-        if (index != -1) {
-            undefMacro = baseMacro.Substring( 0, index );
-        }
-
-        string formattedMacro = index != -1
-            ? baseMacro.Insert( index, $"_{classInfo.mInfo.mTypeName}" )
-            : $"{baseMacro}_{classInfo.mInfo.mTypeName}";
+        
+        string undefMacro = baseMacro.Split('(')[0];
+        string formattedMacro = $"{undefMacro}_{classInfo.mInfo.mTypeName}";
 
         StringBuilder sb = new( );
         sb.AppendLine( $"#undef {undefMacro}" );

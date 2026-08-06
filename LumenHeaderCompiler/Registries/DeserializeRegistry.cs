@@ -12,6 +12,7 @@ internal class DeserializeRegistry : IRegistry {
     private readonly string? mNamespace = null;
 
     public DeserializeRegistry( ConfigFile cfg ) {
+
         mCfg = cfg;
         mDeserializeHelper = new DeserializeHelper( mCfg );
 

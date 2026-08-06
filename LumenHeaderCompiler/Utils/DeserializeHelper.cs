@@ -6,6 +6,7 @@ namespace lhc;
 
 
 internal class DeserializeHelper {
+
     private readonly ConfigFile mCfg;
 
     public DeserializeHelper( ConfigFile cfg ) {
