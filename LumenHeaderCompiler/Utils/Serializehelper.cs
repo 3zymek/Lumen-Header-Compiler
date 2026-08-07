@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection.PortableExecutable;
 using System.Text;
 
 namespace lhc;
@@ -37,13 +38,30 @@ internal class SerializeHelper {
         for(int i = 0; i < info.mFields.Count; i++) {
 
             var field = info.mFields[i];
+            string writer = mCfg.TypeToWriter( field.mTypeName ) ??
+                throw new Exception( $"Unknown type: '{field.mTypeName}' in {info.mTypeName}.{field.mVariableName}" );
 
+            Blueprint fieldBp = mCfg.GetBlueprint( "deserialize_fn_field", "\n" );
+
+            var fieldFormats = new Dictionary<string, string>( ) {
+                { "FieldName", field.mVariableName },
+                { "FieldSerializationName", field.ResolveSerializationName( mCfg ) },
+                { "Var", varName },
+                { "Writer", writer },
+            };
+
+            if (i != 0)
+                sb.Append( alignment );
+
+            fieldBp
+                .FormatWith( fieldFormats )
+                .Replace( "\n", $"\n{alignment}" );
+
+            sb.AppendLine( fieldBp.mContent );
 
         }
 
-
-
-        return "";
+        return functionBodyBp.Replace("{Fields}", sb.ToString() ).mContent;
     }
 
 }

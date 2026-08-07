@@ -26,6 +26,7 @@ internal class SupportedMacros {
 
 internal record TypeProperties(
     string reader,
+    string writer,
     List<string> inspector,
     List<string>? droppable_inspector
 );

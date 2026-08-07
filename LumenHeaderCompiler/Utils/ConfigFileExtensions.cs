@@ -13,11 +13,11 @@ internal static class ConfigFileExtensions {
 
     public static Blueprint GetBlueprint( this ConfigFile cfg, string key, string separator ) {
         return cfg.blueprints.TryGetValue( key, out var val )
-            ? new Blueprint(key, string.Join( separator, val ))
+            ? new Blueprint( key, string.Join( separator, val ) )
             : throw new KeyNotFoundException( $"Missing blueprint key '{key}' in config.json" );
     }
 
-    public static string GetDefault(this ConfigFile cfg, string key) {
+    public static string GetDefault( this ConfigFile cfg, string key ) {
         return cfg.defaults.TryGetValue( key, out var val )
             ? val
             : throw new KeyNotFoundException( $"Missing defaults key '{key}' in config.json" );
@@ -26,6 +26,13 @@ internal static class ConfigFileExtensions {
     public static string? TypeToReader( this ConfigFile cfg, string type ) {
         if (cfg.mTypesCfg.types.TryGetValue( type, out var value )) {
             return value.reader;
+        }
+        return null;
+    }
+
+    public static string? TypeToWriter( this ConfigFile cfg, string type ) {
+        if (cfg.mTypesCfg.types.TryGetValue( type, out var value )) {
+            return value.writer;
         }
         return null;
     }
@@ -41,9 +48,9 @@ internal static class ConfigFileExtensions {
         sb.AppendLine( formattedPreamble.mContent );
         if (pragmaOnce) sb.AppendLine( "#pragma once" );
 
-        if (sourceFile != null) sb.AppendLine( $"#include \"{Path.GetFileName(sourceFile)}\"" );
-        if(extraIncludes != null) {
-            foreach( var include in extraIncludes.Distinct()) {
+        if (sourceFile != null) sb.AppendLine( $"#include \"{Path.GetFileName( sourceFile )}\"" );
+        if (extraIncludes != null) {
+            foreach (var include in extraIncludes.Distinct( )) {
                 sb.AppendLine( $"#include \"{include.Replace( '\\', '/' )}\"" );
             }
         }

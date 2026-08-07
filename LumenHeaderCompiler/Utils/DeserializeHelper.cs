@@ -36,7 +36,7 @@ internal class DeserializeHelper {
         StringBuilder fieldsSb = new( );
         for (int i = 0; i < info.mFields.Count; i++) {
 
-            FieldInfo field = info.mFields[i];
+            var field = info.mFields[i];
             string reader = mCfg.TypeToReader( field.mTypeName ) ??
                 throw new Exception( $"Unknown type: '{field.mTypeName}' in {info.mTypeName}.{field.mVariableName}" );
 

@@ -25,6 +25,7 @@ internal class LhcPipeline {
         mRootDir = rootDir;
 
         mRegistries.Add( "deserialize_registry", new DeserializeRegistry( mCfg ) );
+        mRegistries.Add( "serialize_registry", new SerializeRegistry( mCfg ) );
         mRegistries.Add( "editor_registry", new EditorRegistry( mCfg ) );
         mRegistries.Add( "ecs_traits_registry", new EcsTraitsRegistry( mCfg ) );
         mRegistries.Add( "editor_traits_registry", new EditorTraitsRegistry( mCfg ) );
