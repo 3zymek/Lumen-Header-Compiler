@@ -41,11 +41,11 @@ internal class SerializeHelper {
             string writer = mCfg.TypeToWriter( field.mTypeName ) ??
                 throw new Exception( $"Unknown type: '{field.mTypeName}' in {info.mTypeName}.{field.mVariableName}" );
 
-            Blueprint fieldBp = mCfg.GetBlueprint( "deserialize_fn_field", "\n" );
+            Blueprint fieldBp = mCfg.GetBlueprint( "serialize_fn_field", "\n" );
 
             var fieldFormats = new Dictionary<string, string>( ) {
                 { "FieldName", field.mVariableName },
-                { "FieldSerializationName", field.ResolveSerializationName( mCfg ) },
+                { "FieldSerializeName", field.ResolveSerializationName( mCfg ) },
                 { "Var", varName },
                 { "Writer", writer },
             };
@@ -62,6 +62,7 @@ internal class SerializeHelper {
         }
 
         return functionBodyBp.Replace("{Fields}", sb.ToString() ).mContent;
+
     }
 
 }

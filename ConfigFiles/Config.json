@@ -2,29 +2,33 @@
   "outputs": [
     {
       "registry_type": "deserialize_registry",
-      "finalize_path": "mgrs/DeserializeFunctions.hpp"
+      "finalize_path": "Engine/Include/Modules/Scene/Format/DeserializeFunctions.hpp"
+    },
+    {
+      "registry_type": "serialize_registry",
+      "finalize_path": "Engine/Include/Modules/Scene/Format/SerializeFunctions.hpp"
     },
     {
       "registry_type": "editor_registry",
-      "finalize_path": "mgrs/editor_dep_manager.hpp"
+      "finalize_path": "Editor/Include/EditorDependencies.hpp"
     },
     {
       "registry_type": "ecs_traits_registry",
-      "finalize_path": "mgrs/ecs_traits.hpp"
+      "finalize_path": "Engine/Include/Modules/Entity/EcsTraits.hpp"
     },
     {
       "registry_type": "editor_traits_registry",
-      "finalize_path": "mgrs/editor_traits.hpp"
+      "finalize_path": "Editor/Include/EditorTraits.hpp"
     },
     {
       "registry_type": "scene_registry",
-      "finalize_path": "mgrs/SceneRegistry.cpp"
+      "finalize_path": "Engine/Include/Modules/Scene/SceneRegistry.cpp"
     }
   ],
   "supported_macros": {
-    "class_macro": "LCLASS",
-    "property_macro": "LPROPERTY",
-    "function_macro": "LFUNCTION",
+    "class_macro": "LUM_CLASS",
+    "property_macro": "LUM_PROPERTY",
+    "function_macro": "LUM_FUNCTION",
     "generated_body_macro": "LUM_GENERATED_BODY( )",
     "class_extensions_macro": "LUM_CLASS_EXTENSIONS( )"
   },
@@ -68,11 +72,8 @@
       ""
     ],
     "deserialize_registry_header_basefile": [
-      "//#include \"Core/Types.hpp\"",
       "",
-      "{DeserializeFunctions}",
-      "",
-      ""
+      "{DeserializeFunctions}"
     ],
     "deserialize_fn_body": [
       "{Signature} {",
@@ -106,6 +107,30 @@
       "map[ HashStr( \"{DeserializeName}\" ) ] = {DeserializeFunctionName};" 
     ],
 
+    "serialize_registry_source_basefile": [
+      "#include \"Scene/Format/FormatCommon.hpp\"",
+      "#include \"Scene/SceneManager.hpp\"",
+      "#include \"Scene/Format/SerializeFunctions.gen.hpp\"",
+      "",
+      "{SerializeFunctions}",
+      ""
+    ],
+    "serialize_registry_header_basefile": [
+      "",
+      "{SerializeFunctions}"
+    ],
+    "serialize_fn_body": [
+      "{Signature} {",
+      "\t{ClassName}* {Var} = static_cast<{ClassName}*>( base );",
+      "\tsb.AppendLine( \"@{SerializationName} {\" )",
+      "\t{Fields}",
+      "\tsb.AppendLine( \"}\" );",
+      "}"
+    ],
+    "serialize_fn_field": [
+      "sb.AppendLine( \"{FieldSerializeName}: \" )",
+      "{Writer}( {Var}->{FieldName}, sb );"
+    ],
 
 
     "editor_fn": [
@@ -214,19 +239,20 @@
 
     "scene_registry_fn": [
       "{Signature} {",
-      "\tstatic const std::unordered_map<uint64, SceneComponentInfo> sMap = {",
       "",
       "\t{Fields}",
       "",
-      "\t};",
-      "",
-      "\tmap = sMap;",
       "}"
     ],
     "scene_registry_fn_field": [
-      "{ HashString( \"{SerializationName}\" ), SceneComponentInfo {",
-      "\t&{DeserializeFn},",
-      "} },"
+      "infos.push_back(",
+      "\t{",
+      "\t\t\"{SerializationName}\",",
+      "\t\tTypeRegistry::GetTypeId<{ClassName}>( ),",
+      "\t\t&{DeserializeFn},",
+      "\t\tnullptr",
+      "\t}",
+      ");"
     ],
     "scene_registry_basefile": [
       "#include \"Scene/Format/FormatCommon.hpp\"",
@@ -245,20 +271,23 @@
 
     "deserialize_fn_var": "component",
     "deserialize_fn_name": "LGEN_Deserialize{ClassName}",
-    "deserialize_fn_signature": "void LGEN_Deserialize{ClassName}( std::vector<lum::fmt::FToken>& tokens, lum::int32& i, lum::fmt::FParseContext& ctx )",
+    "deserialize_fn_signature": "void LGEN_Deserialize{ClassName}( std::vector<lum::fmt::Token>& tokens, lum::int32& i, lum::fmt::ParseContext& ctx )",
     "deserialize_namespace": "lum::fmt::detail",
 
+    "serialize_fn_var": "component", 
+    "serialize_fn_name": "LGEN_Serialize{ClassName}",
+    "serialize_fn_signature": "void LGEN_Serialize{ClassName}( StringBuilder& sb, ComponentBase* base )",
+    "serialize_namespace": "lum::fmt::detail",
+    
     "ecs_traits_forward_declare_namespace": "lum",
 
     "editor_fn_var": "component",
-    "editor_fn_name": "DrawInspector{ClassName}",
-    "editor_fn_signature": "void DrawInspector{ClassName}( ecs::EntityManager& mgr, lum::EntityID entity )",
+    "editor_fn_name": "LGEN_DrawInspector{ClassName}",
+    "editor_fn_signature": "void LGEN_DrawInspector{ClassName}( ecs::EntityManager& mgr, lum::EntityID entity )",
     "editor_namespace": "lum::editor",
     "editor_registry_fn_signature": "void RegisterEditorComponents( std::unordered_map<uint64, EditorComponentMetadata>& map )",
 
-    "serialize_fn_name": "Serialize{ClassName}",
-
-    "scene_registry_fn_signature": "void RegisterSceneComponents( std::unordered_map<uint64, SceneComponentInfo>& map )"
+    "scene_registry_fn_signature": "void RegisterSceneComponents( std::vector<SceneComponentInfo>& infos )"
     
   },
   "defaults": {

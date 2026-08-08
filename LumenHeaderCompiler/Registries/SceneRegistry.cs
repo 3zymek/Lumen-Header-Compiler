@@ -36,13 +36,10 @@ internal class SceneRegistry : IRegistry {
 
             fieldBp.FormatWith( formats );
 
-            string fieldContent = fieldBp.mContent.Replace( "\n", $"\n{fieldsAlign}" );
+            if (i != 0)
+                fieldsSb.Append( fieldsAlign );
 
-            if (i > 0) {
-                fieldsSb.AppendLine( );
-            }
-
-            fieldsSb.Append( fieldContent );
+            fieldsSb.AppendLine( fieldBp.mContent );
         }
 
         string signature = mCfg.GetTemplate( "scene_registry_fn_signature" );

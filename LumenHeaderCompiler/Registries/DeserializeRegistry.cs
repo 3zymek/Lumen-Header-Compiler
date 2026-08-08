@@ -16,9 +16,9 @@ internal class DeserializeRegistry : IRegistry {
         mCfg = cfg;
         mDeserializeHelper = new DeserializeHelper( mCfg );
 
-        string parsingNamespace = mCfg.GetTemplate( "deserialize_namespace" ).Trim( );
-        if (!string.IsNullOrWhiteSpace( parsingNamespace ))
-            mNamespace = parsingNamespace;
+        string np = mCfg.GetTemplate( "deserialize_namespace" ).Trim( );
+        if (!string.IsNullOrWhiteSpace( np ))
+            mNamespace = np;
 
     }
 
