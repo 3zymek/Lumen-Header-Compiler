@@ -121,13 +121,7 @@ internal static class NamingHelpers {
         return $"{r.ToString( "F2", CultureInfo.InvariantCulture )}f, {g.ToString( "F2", CultureInfo.InvariantCulture )}f, {b.ToString( "F2", CultureInfo.InvariantCulture )}f, 1.0f";
     }
 
-    public static string ResolveDeserializeFunctionName( this string rawName, ConfigFile cfg ) {
-        string ns = cfg.GetTemplate( "deserialize_namespace" );
-        return string.IsNullOrEmpty( ns ) ? rawName : $"{ns}::{rawName}";
-    }
-
-    public static string ResolveEditorFunctionName( this string rawName, ConfigFile cfg ) {
-        string ns = cfg.GetTemplate( "editor_namespace" );
+    public static string ResolveFunctionName( this string rawName, ConfigFile cfg, string ns ) {
         return string.IsNullOrEmpty( ns ) ? rawName : $"{ns}::{rawName}";
     }
 

@@ -128,7 +128,7 @@ internal class EditorRegistry : IRegistry {
             string editorFnName = mCfg
                 .GetTemplate( "editor_fn_name" )
                 .FormatWith( "ClassName", info.mTypeName )
-                .ResolveEditorFunctionName( mCfg );
+                .ResolveFunctionName( mCfg, mCfg.GetTemplate( "editor_namespace" ) );
 
             var formats = new Dictionary<string, string>
             {
@@ -193,7 +193,7 @@ internal class EditorRegistry : IRegistry {
         string generatedHeaderPath = finalizePath.MakeGeneratedPath( "hpp" );
 
         Blueprint baseBp = mCfg.GetBlueprint( "editor_registry_basefile", "\n" );
-        baseBp.FormatWith( "EditorRegistryBody", mSourceFile.ToString() );
+        baseBp.FormatWith( "EditorRegistryBody", mSourceFile.ToString( ) );
 
         string preamble = mCfg.ResolveFilePreamble( null, false, relativeIncludes );
         string sourceResult = $"{preamble}\n{baseBp.mContent}";

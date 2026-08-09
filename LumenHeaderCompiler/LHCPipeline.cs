@@ -48,14 +48,17 @@ internal class LhcPipeline {
             string deserializeFnName = mCfg
                 .GetTemplate( "deserialize_fn_name" )
                 .FormatWith( "ClassName", info.mTypeName )
-                .ResolveDeserializeFunctionName( mCfg );
+                .ResolveFunctionName( mCfg, mCfg.GetTemplate( "deserialize_namespace" ) );
+
+            string serializeFnName = mCfg
+                .GetTemplate( "serialize_fn_name" )
+                .FormatWith( "ClassName", info.mTypeName )
+                .ResolveFunctionName( mCfg, mCfg.GetTemplate( "serialize_namespace" ));
 
             string editorFnName = mCfg
                 .GetTemplate( "editor_fn_name" )
                 .FormatWith( "ClassName", info.mTypeName )
-                .ResolveEditorFunctionName( mCfg );
-
-            string serializeFnName = mCfg.GetTemplate( "serialize_fn_name" );
+                .ResolveFunctionName( mCfg, mCfg.GetTemplate( "editor_namespace" ));
 
             mClassInfos.Add( new(
                 mInfo: info,

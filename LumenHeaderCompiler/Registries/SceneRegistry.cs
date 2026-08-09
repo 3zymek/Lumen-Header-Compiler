@@ -31,6 +31,7 @@ internal class SceneRegistry : IRegistry {
             var formats = new Dictionary<string, string>( ) {   
                 { "ClassName", info.mInfo.mTypeName },
                 { "DeserializeFn", info.mDeserializeFnName },
+                { "SerializeFn", info.mSerializeFnName },
                 { "SerializationName", info.mInfo.ResolveSerializationName() }
             };
 
