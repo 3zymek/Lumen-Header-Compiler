@@ -52,8 +52,11 @@ internal static class NamingHelpers {
     }
     public static string ResolveSerializationName( this FieldInfo info, ConfigFile cfg ) {
         string name = info.mVariableName;
-        if (name.Length > 1 && cfg.prefixes.Contains( name[0].ToString( ) ) && char.IsUpper( name[1] )) {
-            name = name.Substring( 1 );
+        foreach( var prefix in cfg.prefixes) {
+            if(name.StartsWith( prefix )) {
+                name = name.Substring( prefix.Length );
+                break;
+            }
         }
         return name.ToLower( ).Replace( ' ', '_' );
     }

@@ -48,8 +48,7 @@ internal record ClassInfo(
 
 internal delegate void ParseFn( );
 internal class ParserMacroConfig {
-    public ParseFn mParseFn { get; set; } = ( ) =>
-    {
+    public ParseFn mParseFn { get; set; } = ( ) => {
         Console.WriteLine( "mParseFn in ParserMacroConfig has no function established" );
     };
     public required string mValue { get; init; }

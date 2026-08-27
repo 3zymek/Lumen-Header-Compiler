@@ -131,7 +131,9 @@ internal class Parser {
         expect( TokenType.RParen );
 
         if (mClassInfos.Count == 0)
-            throw new LhcException( $"{mCfg.mSupportedMacros.property_macro} found before any {mCfg.mSupportedMacros.class_macro} in {peek( )}", peek( ).mFile, peek( ).mLine );
+            throw new LhcException( 
+                $"{mCfg.mSupportedMacros.property_macro} found before any {mCfg.mSupportedMacros.class_macro} in {peek( )}", peek( ).mFile, peek( ).mLine 
+                );
 
         string type = parse_type( );
         string name = parse_name( );
